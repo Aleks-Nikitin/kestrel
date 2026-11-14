@@ -11,7 +11,9 @@
     "test:unit": "vitest run --project unit",
     "test:integration": "vitest run --project integration",
     "test:live": "vitest run --project live",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "demo": "npm run build && npm run demo:start",
+    "demo:start": "node scripts/start-local-demo.mjs"
   },
   "dependencies": {
     "@langchain/core": "^1.4.1",

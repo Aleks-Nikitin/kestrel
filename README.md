@@ -2,15 +2,25 @@
 
 See the potential in every property.
 
-Kestrel is a commercial-property screening application built during HackPrinceton. The current foundation supplies a Next.js dashboard entry, validated transport contracts and synthetic development fixtures. Real sponsor retrieval, financial services, AI execution and deployment are not yet verified.
+Kestrel screens commercial-property reuse scenarios using matched CoStar facts, Matterport spatial estimates, deterministic financial calculations and a bounded Deep Agents workflow. The judging demonstration runs on the presenter's Mac at **http://localhost:3000**. Public hosting is outside the current scope.
 
-## Development
+## Local demonstration
 
-Use Node 24 and npm. Run `npm ci`, copy `.env.example` to `.env` and supply credentials locally, then run `npm run dev`. Environment files and sponsor datasets must stay outside version control and deployment artifacts. No sponsor data is included in this repository.
+Use Node 24 and npm. Install dependencies with `npm ci`. Keep the existing root `.env` and reviewed `sponsor-data/runtime/demo-property.json` local; neither is distributed with this repository. The launcher requires `GOOGLE_API_KEY`, `MATTERPORT_API_KEY` and `MATTERPORT_API_TOKEN`. Do not overwrite an existing environment file.
 
-Run `npm run typecheck`, `npm run lint`, `npm run build`, and `npm run test:unit`. Integration, live and browser suites have separate scripts; missing live prerequisites are failures, not successful skipped tests.
+Run `npm run demo` to build and start the local production application. On subsequent starts, use `npm run demo:start` with the verified build. Stop it with Control-C. Port 3000 must be available; the launcher binds to the local machine. Open **http://localhost:3000**, select the property, inspect the 2D map and verified 3D tour, enter disclosed scenario assumptions, calculate the comparison, change the budget, then run Analyze.
 
-The application uses root-level `app/`, `lib/`, `features/` and `components/`. Requests use decimal strings and explicit units; deterministic financial services will own calculations and rankings. AI analysis is server-side and remains disabled until configured and verified. Synthetic fixtures are fictional and do not establish live integration.
+The local launcher enables the owner-authorized single-property demo without changing `.env`. Its property projection is labeled licensed cache; Matterport dimensions and Gemini tool execution are retrieved live. Internet access is still required for sponsor/model services, the hosted tour and basemap. Missing data remains unknown, and financial assumptions are not presented as sponsor market facts. Unsaved scenario drafts are lost on reload or property changes, so prepare the tab before presenting.
+
+Gemini uses `gemini-3.1-flash-lite`. OpenRouter is optional and stays disabled unless configured and authorized for the relevant data. Its live fallback is not yet verified. A model outage must leave the direct deterministic comparison available; never describe a failed analysis as live success.
+
+## Development and verification
+
+The application uses root-level `app/`, shared `lib/`, `features/` and `components/`. Shared Zod contracts validate requests and responses. Decimal.js owns canonical financial calculations and rankings; components display server results. The agent executes native planning and typed property, scenario and comparison tools with request isolation and bounded attempts.
+
+Use `npm run typecheck`, `npm run lint`, `npm run test:unit`, `npm run test:integration` and `npm run build`. `npm run test:e2e` verifies mocked frontend behavior separately from live sponsor/model tests. Mocked fixtures do not establish real integration. Missing live prerequisites fail rather than silently skip.
+
+Keep credentials, sponsor records, local authority documents and raw model indexes out of Git, browser static assets and build artifacts. Do not expose server credentials through `NEXT_PUBLIC_` variables. The development server (`npm run dev`) does not automatically enable the reviewed demo's permission flags; use the local demo launcher for judging.
 
 ## Framework credits
 
