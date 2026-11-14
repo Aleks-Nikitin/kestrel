@@ -1,0 +1,146 @@
+import "server-only";
+import { randomUUID } from "node:crypto";
+import { z } from "zod";
+import { apiResponse, type ApiErrorDTO } from "@/lib/contracts";
+import { DomainInputError } from "@/lib/finance/calculate";
+import { ProviderError } from "@/lib/providers/errors";
+export class HttpInputError extends Error {
+  constructor(
+    message: string,
+    readonly status = 400,
+    readonly fields?: { path: string; message: string }[],
+  ) {
+    super(message);
+  }
+}
+export async function readJSON<T extends z.ZodType>(
+  request: Request,
+  schema: T,
+): Promise<z.infer<T>> {
+  const origin = request.headers.get("origin");
+  if (origin && origin !== new URL(request.url).origin)
+    throw new HttpInputError("The request origin is not allowed.", 403);
+  if (
+    !request.headers
+      .get("content-type")
+      ?.toLowerCase()
+      .startsWith("application/json")
+  )
+    throw new HttpInputError("Content-Type must be application/json.", 415);
+  const cap = 200000;
+  if (Number(request.headers.get("content-length")) > cap)
+    throw new HttpInputError("The request exceeds the 200 KB limit.", 413);
+  if (!request.body)
+    throw new HttpInputError("A JSON request body is required.");
+  const reader = request.body.getReader();
+  let size = 0;
+  const chunks: Uint8Array[] = [];
+  try {
+    while (true) {
+      request.signal.throwIfAborted();
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      size += chunk.value.byteLength;
+      if (size > cap) {
+        await reader.cancel();
+        throw new HttpInputError("The request exceeds the 200 KB limit.", 413);
+      }
+      chunks.push(chunk.value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  let data: unknown;
+  try {
+    data = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+  } catch {
+    throw new HttpInputError("The request contains invalid JSON.");
+  }
+  const result = schema.safeParse(data);
+  if (!result.success)
+    throw new HttpInputError(
+      "The request does not match the input contract.",
+      400,
+      result.error.issues
+        .map((i) => ({ path: i.path.join("."), message: i.message }))
+        .slice(0, 30),
+    );
+  return result.data;
+}
+const headers = { "Cache-Control": "private, no-store" };
+export function success<T extends z.ZodType>(
+  schema: T,
+  data: z.infer<T>,
+  requestId = randomUUID(),
+) {
+  const parsed = apiResponse(schema).safeParse({ ok: true, data, requestId });
+  if (!parsed.success)
+    return failure(new Error("Response contract mismatch"), requestId);
+  return Response.json(parsed.data, { headers });
+}
+export function failure(error: unknown, requestId = randomUUID()) {
+  let code: ApiErrorDTO["code"] = "INTERNAL",
+    message = "The request could not be completed.",
+    retryable = false,
+    status = 500,
+    fieldErrors: ApiErrorDTO["fieldErrors"];
+  if (error instanceof HttpInputError) {
+    code = "INVALID_INPUT";
+    message = error.message;
+    status = error.status;
+    fieldErrors = error.fields;
+  } else if (error instanceof DomainInputError) {
+    code = "INVALID_INPUT";
+    message = error.message;
+    status = 400;
+  } else if (error instanceof ProviderError) {
+    code = error.code;
+    message = error.message;
+    retryable = error.retryable;
+    status = {
+      INVALID_INPUT: 400,
+      NOT_FOUND: 404,
+      UPSTREAM_AUTH: 502,
+      UPSTREAM_UNAVAILABLE: 502,
+      TIMEOUT: 504,
+      RATE_LIMITED: 429,
+      DATA_MISMATCH: 409,
+      LICENSE_RESTRICTED: 403,
+    }[code];
+  } else if (
+    error instanceof Error &&
+    ["AbortError", "TimeoutError"].includes(error.name)
+  ) {
+    code = "TIMEOUT";
+    message = "The request was cancelled or exceeded its deadline.";
+    status = 504;
+    retryable = true;
+  } else if (
+    error instanceof Error &&
+    "code" in error &&
+    [
+      "ANALYSIS_UNAVAILABLE",
+      "UPSTREAM_AUTH",
+      "INVALID_INPUT",
+      "TIMEOUT",
+    ].includes(String(error.code))
+  ) {
+    code = error.code as ApiErrorDTO["code"];
+    message = error.message;
+    status = code === "INVALID_INPUT" ? 400 : code === "TIMEOUT" ? 504 : 503;
+    retryable = code === "ANALYSIS_UNAVAILABLE" || code === "TIMEOUT";
+  }
+  return Response.json(
+    {
+      ok: false,
+      error: {
+        code,
+        message,
+        retryable,
+        requestId,
+        ...(fieldErrors ? { fieldErrors } : {}),
+      },
+    },
+    { status, headers },
+  );
+}
