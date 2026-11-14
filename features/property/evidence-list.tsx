@@ -1,3 +1,4 @@
+import { ProvenanceChip, providerKind } from "@/components/kestrel/provenance";
 import type { PropertyDTO } from "@/lib/contracts";
 import { Pill } from "@/components/kestrel/badges";
 import { formatInstant } from "@/features/dashboard/format";
@@ -22,9 +23,9 @@ export function EvidenceList({
           <li key={e.id} className="rounded bg-slate-50 p-2">
             <div className="flex flex-wrap items-center gap-2">
               <code className="text-xs text-slate-800">{e.id}</code>
-              <Pill>{e.provider}</Pill>
+              <ProvenanceChip kind={providerKind(e.provider)} />
               <Pill>{e.kind}</Pill>
-              {e.synthetic ? <Pill tone="amber">Synthetic</Pill> : null}
+              {e.synthetic ? <ProvenanceChip kind="synthetic" /> : null}
             </div>
             <p className="mt-1 text-slate-800">{e.label}</p>
             <p className="mt-0.5 text-xs text-slate-600">

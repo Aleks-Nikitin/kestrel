@@ -1,6 +1,7 @@
 import type { SpatialContextDTO } from "@/lib/contracts";
 import { DataModeBadge, Pill } from "@/components/kestrel/badges";
 import { formatInstant } from "@/features/dashboard/format";
+import { ProvenanceChip, providerKind } from "@/components/kestrel/provenance";
 import { EvidenceList } from "./evidence-list";
 import { RoomSchematic } from "./room-schematic";
 import { locationWithinFootprint } from "@/features/map/geo";
@@ -158,7 +159,9 @@ export function SpatialPanel({
               {spatial.observations.map((o) => (
                 <li key={o.id} className="rounded-md border border-slate-200 p-3 text-sm">
                   <p className="text-slate-900">{o.statement}</p>
-                  <p className="mt-1 text-xs text-slate-600">
+                  <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-slate-600">
+                    <ProvenanceChip kind={providerKind(spatial.provider)} />
+                    {spatial.dataMode === "synthetic" ? <ProvenanceChip kind="synthetic" /> : null}
                     <Pill tone={o.origin === "source_data" ? "green" : "amber"}>
                       {o.origin === "source_data" ? "Source data" : "Estimate"}
                     </Pill>{" "}
