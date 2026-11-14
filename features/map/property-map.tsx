@@ -78,6 +78,12 @@ export function PropertyMap({
         return;
       }
       try {
+        // MapLibre 6 ships its worker as a separate file that bundlers cannot
+        // discover on their own ("Worker failed to load"). Point it at the
+        // installed version, emitted by the bundler as a same-origin asset.
+        ml.setWorkerUrl(
+          new URL("maplibre-gl/dist/maplibre-gl-worker.mjs", import.meta.url).toString(),
+        );
         const map = new ml.Map({
           container: container.current,
           style: resolved ?? PLAIN_STYLE,
