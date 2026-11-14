@@ -10,7 +10,8 @@ import { SyntheticBanner } from "@/components/kestrel/synthetic-banner";
 import { PropertyList } from "@/features/property/property-list";
 import { PropertyPanel } from "@/features/property/property-panel";
 import { SpatialPanel } from "@/features/property/spatial-panel";
-import { PropertyMap } from "@/features/map/property-map";
+import { Explorer } from "@/features/map/explorer";
+import { resolveTour } from "@/features/map/tour";
 import { AnalysisResult } from "@/features/analysis/analysis-result";
 import { ScenarioWorkspace } from "@/features/scenarios/scenario-workspace";
 import type { ComparisonRequestDTO } from "@/lib/contracts";
@@ -262,7 +263,13 @@ export function Dashboard({ client = apiClient }: { client?: ApiClient }) {
 
           <div className="min-w-0 space-y-6" aria-live="polite">
             {state.catalog.status === "ready" ? (
-              <PropertyMap
+              <Explorer
+                tour={resolveTour(state.spatial, state.selectedId)}
+                tourTitle={
+                  state.property.status === "ready"
+                    ? `3D tour of ${state.property.data.address.value ?? "selected property"}`
+                    : "3D tour"
+                }
                 properties={state.catalog.data}
                 selectedId={state.selectedId}
                 onSelect={select}
