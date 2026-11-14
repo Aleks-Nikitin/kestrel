@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  isCompareStale,
   initialState,
   reducer,
   isAnalysisStale,
@@ -7,7 +8,7 @@ import {
   type DashboardState,
 } from "@/features/dashboard/state";
 import { ApiError } from "@/lib/contracts";
-import { analysis, property, spatial, propertyId, errors } from "../fixtures/contracts";
+import { analysis, comparison, property, spatial, propertyId, errors } from "../fixtures/contracts";
 
 const timeout = ApiError.parse(errors.TIMEOUT.error);
 
@@ -54,6 +55,9 @@ describe("dashboard state", () => {
   it("discards a late analysis response for an older input revision", () => {
     let s = reducer(selected(), { type: "analysis_started" });
     s = reducer(s, { type: "revision_bumped" });
+    // The in-flight request answers an older revision, so it stops loading...
+    expect(s.analysis.status).toBe("idle");
+    // ...and its late response is ignored.
     const after = reducer(s, {
       type: "analysis_finished",
       propertyId,
@@ -61,7 +65,32 @@ describe("dashboard state", () => {
       response: analysis,
     });
     expect(after).toBe(s);
-    expect(after.analysis.status).toBe("loading");
+  });
+
+  it("discards a late comparison response and never shows it as current", () => {
+    let s = reducer(selected(), { type: "compare_started" });
+    s = reducer(s, { type: "revision_bumped" });
+    expect(s.compare.status).toBe("idle");
+    const late = reducer(s, {
+      type: "compare_finished",
+      propertyId,
+      inputRevision: 1,
+      response: comparison,
+    });
+    expect(late).toBe(s);
+    expect(reducer(s, { type: "compare_failed", propertyId, inputRevision: 1, error: timeout })).toBe(s);
+  });
+
+  it("accepts a comparison for the current revision and marks it stale after an edit", () => {
+    let s = reducer(selected(), { type: "revision_bumped" });
+    s = reducer(s, { type: "compare_started" });
+    s = reducer(s, { type: "compare_finished", propertyId, inputRevision: 2, response: comparison });
+    expect(s.compare.status).toBe("ready");
+    expect(isCompareStale(s)).toBe(false);
+    s = reducer(s, { type: "revision_bumped" });
+    expect(isCompareStale(s)).toBe(true);
+    s = reducer(s, { type: "select", propertyId: "other" });
+    expect(s.compare.status).toBe("idle");
   });
 
   it("marks a displayed analysis stale as soon as inputs change", () => {
