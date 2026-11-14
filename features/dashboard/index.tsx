@@ -7,6 +7,7 @@ import { SyntheticBanner } from "@/components/kestrel/synthetic-banner";
 import { PropertyList } from "@/features/property/property-list";
 import { PropertyPanel } from "@/features/property/property-panel";
 import { SpatialPanel } from "@/features/property/spatial-panel";
+import { SectionNav } from "./section-nav";
 import { Explorer } from "@/features/map/explorer";
 import { resolveTour } from "@/features/map/tour";
 import { AnalysisPanel } from "@/features/analysis/analysis-panel";
@@ -229,6 +230,17 @@ export function Dashboard({ client = apiClient }: { client?: ApiClient }) {
 
       <main className="mx-auto max-w-7xl space-y-4 px-4 py-4 sm:px-6 sm:py-6">
         {synthetic ? <SyntheticBanner /> : null}
+        {state.selectedId && state.property.status === "ready" ? (
+          <SectionNav
+            available={[
+              "section-property",
+              ...(state.spatial.status === "ready" ? ["section-spatial"] : []),
+              "section-scenarios",
+              "section-comparison",
+              "section-analysis",
+            ]}
+          />
+        ) : null}
 
         <div className="grid gap-6 lg:grid-cols-[19rem_1fr]">
           <nav aria-labelledby="properties-heading" className="min-w-0">
@@ -288,7 +300,9 @@ export function Dashboard({ client = apiClient }: { client?: ApiClient }) {
               />
             ) : null}
             {state.property.status === "ready" ? (
-              <PropertyPanel property={state.property.data} />
+              <div id="section-property" className="scroll-mt-16">
+                <PropertyPanel property={state.property.data} />
+              </div>
             ) : null}
 
             {state.selectedId && state.spatial.status === "loading" ? (
@@ -302,6 +316,7 @@ export function Dashboard({ client = apiClient }: { client?: ApiClient }) {
               />
             ) : null}
             {state.spatial.status === "ready" ? (
+              <div id="section-spatial" className="scroll-mt-16">
               <SpatialPanel
                 spatial={state.spatial.data}
                 location={
@@ -310,6 +325,7 @@ export function Dashboard({ client = apiClient }: { client?: ApiClient }) {
                     : null
                 }
               />
+              </div>
             ) : null}
 
             {state.property.status === "ready" ? (
