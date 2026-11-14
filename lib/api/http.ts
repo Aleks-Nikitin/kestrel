@@ -4,6 +4,7 @@ import { z } from "zod";
 import { apiResponse, type ApiErrorDTO } from "@/lib/contracts";
 import { DomainInputError } from "@/lib/finance/calculate";
 import { ProviderError } from "@/lib/providers/errors";
+import { AgentExecutionError } from "@/lib/agent/errors";
 export class HttpInputError extends Error {
   constructor(
     message: string,
@@ -18,7 +19,7 @@ export async function readJSON<T extends z.ZodType>(
   schema: T,
 ): Promise<z.infer<T>> {
   const origin = request.headers.get("origin");
-  if (origin && origin !== new URL(request.url).origin)
+  if (origin && origin !== (process.env.APP_ORIGIN || new URL(request.url).origin))
     throw new HttpInputError("The request origin is not allowed.", 403);
   if (
     !request.headers
@@ -115,20 +116,11 @@ export function failure(error: unknown, requestId = randomUUID()) {
     message = "The request was cancelled or exceeded its deadline.";
     status = 504;
     retryable = true;
-  } else if (
-    error instanceof Error &&
-    "code" in error &&
-    [
-      "ANALYSIS_UNAVAILABLE",
-      "UPSTREAM_AUTH",
-      "INVALID_INPUT",
-      "TIMEOUT",
-    ].includes(String(error.code))
-  ) {
+  } else if (error instanceof AgentExecutionError) {
     code = error.code as ApiErrorDTO["code"];
     message = error.message;
-    status = code === "INVALID_INPUT" ? 400 : code === "TIMEOUT" ? 504 : 503;
-    retryable = code === "ANALYSIS_UNAVAILABLE" || code === "TIMEOUT";
+    status = code === "INVALID_INPUT" ? 400 : code === "LICENSE_RESTRICTED" ? 403 : code === "TIMEOUT" ? 504 : 503;
+    retryable = error.retryable;
   }
   return Response.json(
     {
