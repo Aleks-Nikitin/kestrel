@@ -139,8 +139,15 @@ test("the map element fills its region so markers are clickable, not clipped", a
   await page.goto("/");
   const region = page.getByTestId("property-map");
   await expect(region.locator(".maplibregl-map")).toBeVisible();
-  const [r, m] = await Promise.all([region.boundingBox(), region.locator(".maplibregl-map").boundingBox()]);
-  expect(m && r && m.height >= r.height - 1 && m.width >= r.width - 1).toBe(true);
+  // The region has a 1px border, so compare against its content box
+  // (clientWidth/Height), allowing 2px of rounding.
+  const content = await region.evaluate((el) => ({ w: el.clientWidth, h: el.clientHeight }));
+  const m = await region.locator(".maplibregl-map").boundingBox();
+  expect(m).not.toBeNull();
+  expect(Math.abs(m!.width - content.w)).toBeLessThanOrEqual(2);
+  expect(Math.abs(m!.height - content.h)).toBeLessThanOrEqual(2);
+  expect(m!.height).toBeGreaterThan(200);
+  await expect(page.getByText(/Worker failed to load/)).toHaveCount(0);
   // A normal pointer click on the marker (no force) selects the property.
   await page.getByRole("button", { name: /^Select 100 Fictional/ }).click();
   await expect(page.getByTestId("footprint-check")).toBeVisible();
