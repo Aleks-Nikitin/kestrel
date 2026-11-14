@@ -23,7 +23,7 @@ const KIND: Record<ProvenanceKind, { label: string; icon: LucideIcon; style: str
   vexcel: { label: "Vexcel imagery", icon: Box, style: "bg-cyan-50 text-cyan-900 ring-cyan-600/30" },
   user: { label: "Your assumption", icon: UserRound, style: "bg-sky-50 text-sky-900 ring-sky-600/30" },
   calculation: { label: "Server calculation", icon: Calculator, style: "bg-indigo-50 text-indigo-900 ring-indigo-600/30" },
-  inference: { label: "AI inference", icon: Sparkles, style: "bg-fuchsia-50 text-fuchsia-900 ring-fuchsia-600/30" },
+  inference: { label: "Inference", icon: Sparkles, style: "bg-fuchsia-50 text-fuchsia-900 ring-fuchsia-600/30" },
   fact: { label: "Fact", icon: Building2, style: "bg-emerald-50 text-emerald-900 ring-emerald-600/30" },
   assumption: { label: "Assumption", icon: UserRound, style: "bg-amber-50 text-amber-950 ring-amber-600/40" },
   synthetic: { label: "Synthetic", icon: FlaskConical, style: "bg-amber-50 text-amber-950 ring-amber-600/40 border border-dashed border-amber-600" },
