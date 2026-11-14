@@ -48,6 +48,15 @@ describe("actual route boundary and deterministic comparison", () => {
     expect(body.data.scenarios[1].annualRentPerSqft.origin).toBe("user_input");
     expect(spatialProvider.getSpatialContext).not.toHaveBeenCalled();
   });
+  it("does not invent a project cost basis from unrelated assumptions", async () => {
+    const { handlers } = setup();
+    const input = structuredClone(f01);
+    input.scenarios[1].totalProjectCost = { value: "1000000" };
+    const body = await (await handlers.compare(req(input))).json();
+    expect(body.ok).toBe(true);
+    expect(body.data.scenarios[1].totalProjectCost.note).toBeNull();
+    expect(body.data.comparison.results[1].yieldOnCost.value).toBeNull();
+  });
   it("changes the preferred scenario with a smaller real constraint", async () => {
     const { handlers } = setup();
     const input = structuredClone(f01);

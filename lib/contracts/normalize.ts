@@ -166,9 +166,7 @@ export function normalizeScenarioInputs(
     };
     // A cost basis must be disclosed, not inferred from the entered amount.
     if (s.totalProjectCost.value !== null && !s.totalProjectCost.note?.trim()) {
-      normalized.totalProjectCost.note = s.assumptions.length
-        ? `User-disclosed cost basis assumptions: ${s.assumptions.join("; ")}`
-        : null;
+      normalized.totalProjectCost.note = null;
     }
     return Scenario.parse(normalized);
   });
