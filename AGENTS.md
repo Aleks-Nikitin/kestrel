@@ -15,3 +15,7 @@ This is the authorized Kestrel application repository. Preserve the existing roo
 Use strict TypeScript, Zod 4 validation, Decimal.js for deterministic financial arithmetic, and server-only provider adapters. Deep Agents uses Gemini primarily with the configured OpenRouter fallback. Never import server credentials or sponsor adapters into client code. Shared DTOs and the browser client are authoritative; do not duplicate schemas or calculate canonical financial values in components.
 
 Use npm and the committed lockfile. Run typecheck, lint, relevant tests and production build for shared changes. Keep credentials, restricted data and local authority documents untracked and out of deployment artifacts. Never force-add ignored paths.
+
+## Git workflow
+
+Use clean, descriptive branch names such as `dashboard`, `agent-integration`, or `property-data`. Do not use a `codex/` prefix for any future branch. Preserve existing worktrees and commit history when renaming branches; never reset, recreate, or force-push them to change a name.
