@@ -1,8 +1,11 @@
 import type { SpatialContextDTO } from "@/lib/contracts";
 import type { Load } from "@/features/dashboard/state";
 
-/** Matterport model SIDs are 11 alphanumeric characters. */
-export const SHOWCASE_SID = /^[A-Za-z0-9]{11}$/;
+/**
+ * Matterport documents no SID length (published examples are 11 characters),
+ * so only URL-safety is enforced: alphanumeric, bounded length.
+ */
+export const SHOWCASE_SID = /^[A-Za-z0-9]{6,32}$/;
 
 export type TourState =
   | { status: "checking" }
