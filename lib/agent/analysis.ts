@@ -85,6 +85,11 @@ function missingFinancialInputs(scenarios: ScenarioDTO[]) {
         reason:
           "Normalize the lease to a documented gross or modified-gross basis with owner-paid expenses.",
       });
+    else if (!scenario.rentNormalizationNote?.trim())
+      missing.push({
+        path: `${prefix}.rentNormalizationNote`,
+        reason: "Disclose annual gross rent per rentable square foot and owner-paid expenses before financial analysis.",
+      });
     const expenses = scenario.operatingExpenses;
     if (
       expenses.mode === "total"
@@ -150,6 +155,8 @@ export async function runPropertyAnalysis({
     normalized.evidence,
   );
   const missing = missingFinancialInputs(normalized.scenarios);
+  if ([request.constraints.maxInitialInvestment.value, request.constraints.maxPaybackYears.value, request.constraints.minimumYieldOnCost.value].every((value) => value === null))
+    missing.push({ path: "constraints", reason: "Supply at least one capital or return constraint before requesting a preferred alternative." });
   if (request.scenarios.length < 3)
     missing.unshift({
       path: "scenarios",

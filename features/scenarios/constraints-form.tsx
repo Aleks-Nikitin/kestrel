@@ -30,6 +30,7 @@ export function ConstraintsFormView({
       <p className="mb-3 text-xs text-slate-600">
         Empty constraints are unset, not zero. Changing one can change the
         preferred scenario — the server decides, not the browser.
+        Supply at least one capital or return constraint to select a preferred alternative.
       </p>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <TextField

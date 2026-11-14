@@ -78,6 +78,7 @@ export interface ScenarioForm {
   expenseItems: Record<ExpenseCategory, FieldDraft>;
   capex: Record<CapexField, FieldDraft>;
   totalProjectCost: FieldDraft;
+  totalProjectCostNote: string;
   assumptions: string;
 }
 
@@ -136,6 +137,7 @@ function blankScenario(
       other: blank(),
     },
     totalProjectCost: blank(),
+    totalProjectCostNote: "",
     assumptions: "",
   };
 }
@@ -269,7 +271,10 @@ export function toScenarioInput(
       contingency: capexValue("contingency"),
       other: capexValue("other"),
     },
-    totalProjectCost: iv(f.totalProjectCost),
+    totalProjectCost: {
+      ...iv(f.totalProjectCost),
+      ...(f.totalProjectCostNote?.trim() ? { note: f.totalProjectCostNote.trim() } : {}),
+    },
     assumptions: f.assumptions
       .split("\n")
       .map((l) => l.trim())

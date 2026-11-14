@@ -114,11 +114,11 @@ export function ScenarioFormView({
           hint="NNN or unknown will ask for more input before a result is produced."
         />
         <TextAreaField
-          label="Rent normalization note (optional)"
+          label="Rent normalization note"
           rows={2}
           value={s.rentNormalizationNote}
           onChange={(v) => onPatch({ rentNormalizationNote: v })}
-          hint="How a quoted rent was converted to annual USD per sq ft."
+          hint="Required for financial calculation, including Gross: disclose annual USD rent per rentable sq ft and which expenses the owner pays."
         />
       </Group>
 
@@ -297,7 +297,7 @@ export function ScenarioFormView({
         note={
           baseline
             ? "The baseline needs no conversion investment; the contract fixes it at $0."
-            : "One-time costs to convert to this use (USD, not per year)."
+            : "Enter all five upfront cost categories, including an explicit 0 for excluded work. Their sum is initial investment. Total project cost below does not fill these fields."
         }
       >
         {baseline
@@ -321,7 +321,14 @@ export function ScenarioFormView({
           onChange={(v) => setField("totalProjectCost", v)}
           origin={originOf(s.totalProjectCost)}
           error={err("totalProjectCost")}
-          hint="Needed for yield on cost; must include the investment above and its basis."
+          hint="Optional denominator for yield on cost, not upfront capex. Must include the initial investment above and a disclosed basis below."
+        />
+        <TextAreaField
+          label="Total project cost basis"
+          rows={2}
+          value={s.totalProjectCostNote ?? ""}
+          onChange={(value) => onPatch({ totalProjectCostNote: value })}
+          hint="Needed only when calculating yield on cost. State the existing-property or acquisition basis, included upfront costs, and exclusions. Do not describe an assumed basis as a valuation."
         />
       </Group>
 
