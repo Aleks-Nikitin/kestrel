@@ -10,6 +10,7 @@ import { SyntheticBanner } from "@/components/kestrel/synthetic-banner";
 import { PropertyList } from "@/features/property/property-list";
 import { PropertyPanel } from "@/features/property/property-panel";
 import { SpatialPanel } from "@/features/property/spatial-panel";
+import { PropertyMap } from "@/features/map/property-map";
 import { AnalysisResult } from "@/features/analysis/analysis-result";
 import { analysisRequest } from "./draft";
 import {
@@ -148,6 +149,13 @@ export function Dashboard({ client = apiClient }: { client?: ApiClient }) {
     dispatch({ type: "analysis_cancelled" });
   }, []);
 
+  // A footprint is only drawn for a verified match to the selected property.
+  const verifiedFootprint =
+    state.spatial.status === "ready" &&
+    state.spatial.data.propertyId === state.selectedId &&
+    state.spatial.data.match.status === "verified"
+      ? (state.spatial.data.imagery?.footprintGeoJSON ?? null)
+      : null;
   const stale = isAnalysisStale(state);
   const synthetic = hasSyntheticData(state);
 
@@ -194,6 +202,15 @@ export function Dashboard({ client = apiClient }: { client?: ApiClient }) {
           </nav>
 
           <div className="min-w-0 space-y-6" aria-live="polite">
+            {state.catalog.status === "ready" ? (
+              <PropertyMap
+                properties={state.catalog.data}
+                selectedId={state.selectedId}
+                onSelect={select}
+                footprint={verifiedFootprint}
+              />
+            ) : null}
+
             {!state.selectedId ? (
               <div className="rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-700">
                 Select a property to see its facts, spatial evidence and
@@ -226,7 +243,14 @@ export function Dashboard({ client = apiClient }: { client?: ApiClient }) {
               />
             ) : null}
             {state.spatial.status === "ready" ? (
-              <SpatialPanel spatial={state.spatial.data} />
+              <SpatialPanel
+                spatial={state.spatial.data}
+                location={
+                  state.property.status === "ready"
+                    ? state.property.data.location.value
+                    : null
+                }
+              />
             ) : null}
 
             {state.property.status === "ready" ? (

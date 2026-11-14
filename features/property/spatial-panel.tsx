@@ -2,6 +2,8 @@ import type { SpatialContextDTO } from "@/lib/contracts";
 import { DataModeBadge, Pill } from "@/components/kestrel/badges";
 import { formatInstant } from "@/features/dashboard/format";
 import { EvidenceList } from "./evidence-list";
+import { RoomSchematic } from "./room-schematic";
+import { locationWithinFootprint } from "@/features/map/geo";
 
 const PROVIDER_LABEL = { matterport: "Matterport", vexcel: "Vexcel" } as const;
 const MATCH_TONE = {
@@ -14,8 +16,18 @@ function dim(value: string | null) {
   return value === null ? "—" : value;
 }
 
-export function SpatialPanel({ spatial }: { spatial: SpatialContextDTO }) {
+export function SpatialPanel({
+  spatial,
+  location = null,
+}: {
+  spatial: SpatialContextDTO;
+  /** The selected property's own coordinates, for the footprint check. */
+  location?: { longitude: number; latitude: number } | null;
+}) {
   const { match, model, imagery } = spatial;
+  const footprint = imagery?.footprintGeoJSON ?? null;
+  const inside =
+    footprint && location ? locationWithinFootprint(location, footprint) : null;
   const verified = match.status === "verified";
   return (
     <section
@@ -72,6 +84,15 @@ export function SpatialPanel({ spatial }: { spatial: SpatialContextDTO }) {
               No matched imagery is available for this property.
             </p>
           )}
+          <p className="mt-2 text-sm text-slate-800" data-testid="footprint-check">
+            {footprint === null
+              ? "No building footprint was supplied, so the coordinates could not be checked against one."
+              : location === null
+                ? "The property has no known coordinates to check against the footprint."
+                : inside
+                  ? "The property's coordinates fall inside the matched footprint."
+                  : "The property's coordinates fall outside the matched footprint — treat the match with caution."}
+          </p>
 
           <h3 className="mt-5 text-sm font-semibold text-slate-900">
             3D model measurements
@@ -84,7 +105,8 @@ export function SpatialPanel({ spatial }: { spatial: SpatialContextDTO }) {
                   ? "commercial property ID"
                   : "geographic review"}
               </p>
-              <p className="mt-1 text-xs text-slate-600">
+              <RoomSchematic rooms={model.rooms} />
+              <p className="mt-3 text-xs text-slate-600">
                 Dimensions in metres (m); areas in square metres (m²). Unit
                 conversion: {model.conversionNote}
               </p>
