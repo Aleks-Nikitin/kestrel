@@ -15,3 +15,9 @@ The application uses root-level `app/`, `lib/`, `features/` and `components/`. R
 ## Framework credits
 
 Kestrel uses Next.js, React, TypeScript, Tailwind CSS, shadcn/ui and Radix UI, Lucide, Recharts, MapLibre GL JS, Turf, Zod, Decimal.js, LangChain Deep Agents, Google's Gemini integration and OpenRouter's integration. Vitest and Playwright provide testing. These libraries supply infrastructure; Kestrel's contracts, integration logic, domain calculations and product workflow are project work.
+
+## Basemap
+
+The default MapLibre style is [OpenFreeMap Liberty](https://openfreemap.org/quick_start/). OpenFreeMap permits commercial use without an API key. MapLibre displays the supplied OpenFreeMap, OpenMapTiles and OpenStreetMap attribution. Retain it in the application and in screenshots or videos. Liberty's style code is BSD-3-Clause and its design is CC BY 4.0; see [the upstream licenses](https://github.com/hyperknot/openfreemap/blob/main/LICENSE.md). The public service is provided without an availability guarantee.
+
+Set `NEXT_PUBLIC_MAP_STYLE_URL` to another properly licensed HTTPS style if needed. An explicitly empty value selects the labeled plain-background fallback. Repeatable browser tests use that fallback and synthetic records; live basemap verification is separate. Basemap tiles provide geographic context and do not count as matching sponsor evidence.
