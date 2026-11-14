@@ -2,6 +2,7 @@ import type {
   AnalysisResponseDTO,
   FinancialResultDTO,
 } from "@/lib/contracts";
+import { describeMissing } from "@/features/scenarios/readiness";
 import { DataModeBadge, OriginBadge, Pill } from "@/components/kestrel/badges";
 import { ProvenanceChip, ProvenanceLegend, providerKind } from "@/components/kestrel/provenance";
 import { Lightbulb, TriangleAlert } from "lucide-react";
@@ -174,7 +175,7 @@ export function AnalysisResult({
         </ul>
         {comparison.missingInputs.length ? (
           <p className="mt-2 text-sm text-amber-900">
-            Missing: {comparison.missingInputs.join("; ")}
+            Missing: {comparison.missingInputs.map((m) => describeMissing(m, name)).join("; ")}
           </p>
         ) : null}
       </div>

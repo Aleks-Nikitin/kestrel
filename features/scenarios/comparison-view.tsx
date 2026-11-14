@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { formatByUnit } from "@/features/dashboard/format";
 import { ComparisonChart } from "./comparison-chart";
 import { scenarioIdentity } from "./identity";
+import { describeMissing } from "./readiness";
 import { ProvenanceChip } from "@/components/kestrel/provenance";
 
 type Metric = FinancialResultDTO["noi"];
@@ -153,7 +154,8 @@ export function ComparisonView({
           ) : null}
           {comparison.missingInputs.length ? (
             <p className="mt-2 text-sm">
-              <strong>Missing:</strong> {comparison.missingInputs.join("; ")}
+              <strong>Missing:</strong>{" "}
+              {comparison.missingInputs.map((m) => describeMissing(m, name)).join("; ")}
             </p>
           ) : null}
         </div>
