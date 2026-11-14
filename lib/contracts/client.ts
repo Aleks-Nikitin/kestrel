@@ -50,12 +50,13 @@ export function createApiClient(transport: typeof fetch = fetch) {
       const result = parsed.data as ApiResponseDTO<z.infer<T>>;
       if (result.ok && expected) {
         const data = result.data as {
+          id?: string;
           propertyId?: string;
           property?: { id: string };
           inputRevision?: number;
         };
         if (
-          (data.propertyId ?? data.property?.id) !== expected.propertyId ||
+          (data.propertyId ?? data.property?.id ?? data.id) !== expected.propertyId ||
           (expected.inputRevision !== undefined &&
             data.inputRevision !== expected.inputRevision)
         )

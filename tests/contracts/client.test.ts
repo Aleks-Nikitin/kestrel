@@ -6,6 +6,11 @@ const transport = (data: unknown, status = 200) =>
     .fn<typeof fetch>()
     .mockResolvedValue(new Response(JSON.stringify(data), { status }));
 describe("browser-safe contract client", () => {
+  it("accepts a valid property detail keyed by its own id", async () => {
+    const result = await createApiClient(transport(f.success(f.property)))
+      .getProperty(f.propertyId);
+    expect(result.ok).toBe(true);
+  });
   it("validates successful canonical responses", async () => {
     const fetcher = transport(f.success(f.comparison));
     expect((await createApiClient(fetcher).compare(f.f01)).ok).toBe(true);
