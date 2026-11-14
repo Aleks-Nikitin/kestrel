@@ -4,6 +4,8 @@ import { Pill } from "@/components/kestrel/badges";
 import { cn } from "@/lib/utils";
 import { formatByUnit } from "@/features/dashboard/format";
 import { ComparisonChart } from "./comparison-chart";
+import { scenarioIdentity } from "./identity";
+import { ProvenanceChip } from "@/components/kestrel/provenance";
 
 type Metric = FinancialResultDTO["noi"];
 
@@ -74,6 +76,7 @@ export function ComparisonView({
   const synthetic = response.evidence.some((e) => e.synthetic);
   const concl = CONCLUSION[comparison.conclusion];
   const preferredId = comparison.preferredScenarioId;
+  const preferredResult = comparison.results.find((r) => r.scenarioId === preferredId);
 
   return (
     <div className={cn("space-y-5", stale && "opacity-70")} data-testid="comparison-result" data-stale={stale}>
@@ -84,40 +87,77 @@ export function ComparisonView({
         </div>
       ) : null}
 
-      <div className={cn("rounded-lg border p-4", concl.tone)} data-testid="recommendation">
-        <p className="flex flex-wrap items-center gap-2 text-sm font-semibold">
-          <Award className="size-4" aria-hidden />
-          {concl.title}
-          {preferredId ? `: ${name(preferredId)}` : ""}
-          {synthetic ? <Pill tone="amber">Synthetic inputs</Pill> : null}
-        </p>
-        {comparison.reasons.length ? (
-          <div className="mt-2">
-            <p className="text-xs font-medium uppercase tracking-wide opacity-80">
-              Why (from the deterministic comparison)
-            </p>
-            <ul className="mt-1 space-y-1 text-sm">
-              {comparison.reasons.map((r) => (
-                <li key={r.code}>{r.text}</li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-        {comparison.rankedScenarioIds.length ? (
-          <ol className="mt-3 flex flex-wrap gap-2 text-sm" aria-label="Ranking, best first">
-            {comparison.rankedScenarioIds.map((id, i) => (
-              <li key={id} className="rounded-full bg-white/70 px-3 py-0.5 ring-1 ring-black/10">
-                #{i + 1} {name(id)}
-              </li>
-            ))}
-          </ol>
-        ) : null}
-        {comparison.missingInputs.length ? (
-          <p className="mt-2 text-sm">
-            <strong>Missing:</strong> {comparison.missingInputs.join("; ")}
+      <div className={cn("overflow-hidden rounded-xl border", concl.tone)} data-testid="recommendation">
+        <div className="p-4 sm:p-5">
+          <p className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wide opacity-80">
+            <Award className="size-4" aria-hidden />
+            Recommendation · {concl.title}
+            {synthetic ? <ProvenanceChip kind="synthetic" /> : null}
           </p>
-        ) : null}
-        <p className="mt-2 flex items-start gap-1.5 text-xs opacity-90">
+          {preferredId ? (
+            <div className="mt-2 flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+              <div>
+                <p className="text-2xl font-semibold leading-tight">{name(preferredId)}</p>
+                <p className="text-sm opacity-80">
+                  {scenarios.find((s) => s.id === preferredId)?.proposedUse}
+                </p>
+              </div>
+              {preferredResult ? (
+                <dl className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+                  {(
+                    [
+                      ["incrementalNoi", "Incremental NOI vs baseline"],
+                      ["initialInvestment", "Initial investment"],
+                      ["paybackYears", "Simple payback"],
+                    ] as [keyof FinancialResultDTO & string, string][]
+                  ).map(([key, label]) => (
+                    <div key={key}>
+                      <dt className="text-xs opacity-80">{label}</dt>
+                      <dd className="text-lg font-semibold">
+                        <MetricValue metric={preferredResult[key as "noi"]} />
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              ) : null}
+            </div>
+          ) : (
+            <p className="mt-2 text-xl font-semibold">No scenario is preferred</p>
+          )}
+          {comparison.reasons.length ? (
+            <div className="mt-3">
+              <p className="text-xs font-medium uppercase tracking-wide opacity-80">
+                Why (from the deterministic comparison)
+              </p>
+              <ul className="mt-1 space-y-1 text-sm">
+                {comparison.reasons.map((r) => (
+                  <li key={r.code}>{r.text}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {comparison.rankedScenarioIds.length ? (
+            <ol className="mt-3 flex flex-wrap gap-2 text-sm" aria-label="Ranking, best first">
+              {comparison.rankedScenarioIds.map((id, i) => {
+                const idn = scenarioIdentity(scenarios.find((x) => x.id === id), i);
+                return (
+                  <li key={id} className="inline-flex items-center gap-1.5 rounded-full bg-white/80 py-0.5 pl-0.5 pr-3 ring-1 ring-black/10">
+                    <span className={cn("grid size-6 place-items-center rounded-full text-[11px] font-bold", idn.badge)} aria-hidden>
+                      {i + 1}
+                    </span>
+                    #{i + 1} {name(id)}
+                  </li>
+                );
+              })}
+            </ol>
+          ) : null}
+          {comparison.missingInputs.length ? (
+            <p className="mt-2 text-sm">
+              <strong>Missing:</strong> {comparison.missingInputs.join("; ")}
+            </p>
+          ) : null}
+        </div>
+        <p className="flex items-start gap-1.5 border-t border-black/10 bg-white/40 px-4 py-2 text-xs opacity-90 sm:px-5">
           <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden />
           Preliminary income screening. A preference is not an appraisal,
           zoning determination or structural approval, and it does not prove a
@@ -144,22 +184,29 @@ export function ComparisonView({
           const sc = scenarios.find((s) => s.id === r.scenarioId);
           const isPreferred = r.scenarioId === preferredId;
           const k = rank(r.scenarioId);
+          const idn = scenarioIdentity(sc, comparison.results.indexOf(r));
           return (
             <li
               key={r.scenarioId}
               data-scenario={r.scenarioId}
               data-preferred={isPreferred}
               className={cn(
-                "min-w-0 rounded-lg border bg-white p-4",
+                "relative min-w-0 overflow-hidden rounded-xl border bg-white p-4 pt-5",
                 isPreferred ? "border-sky-600 ring-2 ring-sky-600/30" : "border-slate-200",
               )}
             >
+              <span className={cn("absolute inset-x-0 top-0 h-1.5", idn.bar)} aria-hidden />
               <div className="flex flex-wrap items-start justify-between gap-2">
-                <div className="min-w-0">
+                <div className="flex min-w-0 items-start gap-2">
+                  <span className={cn("mt-0.5 grid h-6 min-w-6 place-items-center rounded-md px-1 text-[11px] font-bold", idn.badge)} aria-hidden>
+                    {idn.letter}
+                  </span>
+                  <div className="min-w-0">
                   <h4 className="text-sm font-semibold text-slate-900">{name(r.scenarioId)}</h4>
                   <p className="text-xs text-slate-600">
                     {sc?.role === "baseline" ? "Baseline" : "Alternative"} · {sc?.proposedUse}
                   </p>
+                  </div>
                 </div>
                 <div className="flex flex-wrap gap-1">
                   {isPreferred ? <Pill tone="blue">Preferred</Pill> : null}
@@ -170,7 +217,7 @@ export function ComparisonView({
                 {HEADLINE.map(([key, label]) => (
                   <div key={key} className="flex items-baseline justify-between gap-3 py-1.5">
                     <dt className="text-slate-700">{label}</dt>
-                    <dd className="text-right text-slate-900">
+                    <dd className={cn("text-right text-slate-900", key === "noi" && "text-base font-semibold")}>
                       <MetricValue metric={r[key as "noi"]} />
                     </dd>
                   </div>
