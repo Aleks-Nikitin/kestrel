@@ -17,16 +17,9 @@ export function showcaseUrl(sid: string): string {
   return `https://my.matterport.com/show/?m=${encodeURIComponent(sid)}&play=1`;
 }
 
-/**
- * The frozen spatial contract (v1) exposes `model.id`, which is not documented
- * as a Showcase SID, and no embeddable flag. A GraphQL model identifier must
- * not be assumed to be interchangeable with an embed SID, so until Codex adds
- * an explicit field this returns null and the tour stays unavailable.
- * This is the single place to change once the contract exposes the SID.
- */
-export function showcaseSidOf(_spatial: SpatialContextDTO): string | null {
-  void _spatial;
-  return null;
+/** Only trusted publication proof enables an embed; model.id alone is insufficient. */
+export function showcaseSidOf(spatial: SpatialContextDTO): string | null {
+  return spatial.model?.showcase?.sid ?? null;
 }
 
 export const NO_SID_REASON =

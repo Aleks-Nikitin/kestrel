@@ -1,6 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { SpatialContext } from "@/lib/contracts";
 import { mismatchedSpatial, propertyId, spatial } from "../fixtures/contracts";
 import { Explorer, TourPanel } from "@/features/map/explorer";
 import { NO_SID_REASON, resolveTour, showcaseUrl, type TourState } from "@/features/map/tour";
@@ -17,8 +18,42 @@ describe("resolveTour", () => {
     expect(resolveTour({ status: "loading" }, propertyId).status).toBe("checking");
     expect(resolveTour(ready(spatial), "other-property").status).toBe("checking");
   });
-  it("never invents an SID: the frozen contract has none", () => {
+  it("keeps a private or unpublished model unavailable without publication proof", () => {
     expect(resolveTour(ready(spatial), propertyId)).toEqual({ status: "unavailable", reason: NO_SID_REASON });
+  });
+  it("enables the existing viewer from verified matching publication metadata", () => {
+    const published = SpatialContext.parse({
+      ...spatial,
+      model: {
+        ...spatial.model!,
+        id: SID,
+        showcase: { sid: SID, verifiedAt: "2026-11-14T18:00:00Z" },
+      },
+    });
+    expect(resolveTour(ready(published), propertyId)).toEqual({
+      status: "available",
+      sid: SID,
+      url: showcaseUrl(SID),
+    });
+  });
+  it("rejects proof for a different model or an unverified/non-Matterport layer", () => {
+    const published = {
+      ...spatial,
+      model: {
+        ...spatial.model!,
+        id: SID,
+        showcase: { sid: SID, verifiedAt: "2026-11-14T18:00:00Z" },
+      },
+    };
+    expect(SpatialContext.safeParse({
+      ...published,
+      model: { ...published.model, id: spatial.model!.id },
+    }).success).toBe(false);
+    expect(SpatialContext.safeParse({ ...published, provider: "vexcel" }).success).toBe(false);
+    expect(SpatialContext.safeParse({
+      ...published,
+      match: { ...published.match, status: "ambiguous" },
+    }).success).toBe(false);
   });
   it("is unavailable for unverified or unmatched models", () => {
     const r = resolveTour(ready(mismatchedSpatial), mismatchedSpatial.propertyId, withSid);

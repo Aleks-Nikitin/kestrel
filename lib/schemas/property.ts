@@ -170,6 +170,10 @@ export const SpatialContext = z
           .max(500),
         conversionNote: Text,
         signedUrlExpiresAt: Instant.nullable(),
+        // Present only after trusted server verification of Showcase publication.
+        showcase: z
+          .strictObject({ sid: Id, verifiedAt: Instant })
+          .optional(),
       })
       .nullable(),
     evidence: z.array(Evidence).max(200),
@@ -202,6 +206,17 @@ export const SpatialContext = z
       ctx.addIssue({
         code: "custom",
         message: "Verified match requires dated evidence",
+      });
+    if (
+      s.model?.showcase &&
+      (s.model.showcase.sid !== s.model.id ||
+        s.provider !== "matterport" ||
+        s.match.status !== "verified")
+    )
+      ctx.addIssue({
+        code: "custom",
+        path: ["model", "showcase"],
+        message: "Showcase proof must identify the verified Matterport model",
       });
     if (
       s.model?.joinSource === "costar_property_id" &&
