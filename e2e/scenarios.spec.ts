@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { CatalogResponse, ComparisonRequest } from "@/lib/contracts";
+import { prepareValidScenarios } from "./helpers/scenario";
 import { comparison, errors, property, propertyId, spatial, success } from "../tests/fixtures/contracts";
 
 // Synthetic fixtures injected at the network boundary only; the compare route
@@ -36,6 +37,7 @@ async function openEditor(page: Page) {
   // Scope to the list: map markers share the property's accessible name.
   await page.getByRole("list", { name: "Properties" }).getByRole("button").first().click();
   await expect(page.getByRole("heading", { name: "Scenarios" })).toBeVisible();
+  await prepareValidScenarios(page);
 }
 
 test("calculates a comparison from valid drafts and shows backend values only", async ({ page }) => {
@@ -47,6 +49,9 @@ test("calculates a comparison from valid drafts and shows backend values only", 
   const body = ComparisonRequest.parse(requests[0]);
   expect(body.scenarios).toHaveLength(3);
   expect(body.propertyId).toBe(propertyId);
+  expect(body.scenarios.map((x) => x.proposedUse)).toEqual(["Office", "Self storage", "Light industrial"]);
+  expect(body.scenarios[0].capex.renovation.value).toBe("0"); // baseline investment is zero by contract
+  expect(body.scenarios[1].capex.renovation.value).toBeNull(); // unknown stays unknown
   const preferred = page.locator('[data-preferred="true"]');
   await expect(preferred).toHaveCount(1);
   await expect(preferred).toContainText("Preferred");
@@ -71,6 +76,17 @@ test("an invalid field blocks the request and is marked on its tab", async ({ pa
   await page.getByRole("button", { name: "Calculate comparison" }).click();
   await expect(page.getByTestId("validation-summary")).toContainText("request was not sent");
   expect(requests).toHaveLength(0);
+});
+
+test("typed decimals are sent exactly as entered", async ({ page }) => {
+  const requests = await mock(page);
+  await openEditor(page);
+  await page.getByRole("tab", { name: /Alternative A/ }).click();
+  await page.getByLabel(/^Annual rent/).fill("12.50");
+  await page.getByRole("button", { name: "Calculate comparison" }).click();
+  await expect(page.getByText(/Why \(from the deterministic comparison\)/)).toBeVisible();
+  const body = ComparisonRequest.parse(requests[0]);
+  expect(body.scenarios[1].annualRentPerSqft).toEqual({ value: "12.50" });
 });
 
 test("explicit 'no other income modeled' sends zero with a note", async ({ page }) => {
