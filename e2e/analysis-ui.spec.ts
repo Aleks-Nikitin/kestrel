@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { AnalysisRequest, CatalogResponse } from "@/lib/contracts";
+import { prepareValidScenarios } from "./helpers/scenario";
 import { analysis, errors, needsInput, property, propertyId, spatial, success } from "../tests/fixtures/contracts";
 
 // Synthetic fixtures injected at the network boundary only. The analysis
@@ -35,6 +36,7 @@ async function open(page: Page) {
   await page.goto("/");
   await page.getByRole("list", { name: "Properties" }).getByRole("button").first().click();
   await expect(page.getByRole("heading", { name: "Analysis" })).toBeVisible();
+  await prepareValidScenarios(page);
 }
 
 const action = (page: Page, name: string) =>
