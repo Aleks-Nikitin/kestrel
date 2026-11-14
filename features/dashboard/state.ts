@@ -1,6 +1,7 @@
 import type { z } from "zod";
 import type { CatalogResponse } from "@/lib/contracts";
 import type {
+  AnalysisRequestDTO,
   AnalysisResponseDTO,
   ApiErrorDTO,
   ComparisonResponseDTO,
@@ -30,6 +31,8 @@ export interface DashboardState {
   analysis: Load<AnalysisResponseDTO>;
   /** Revision the displayed analysis answered; null when none. */
   analysisRevision: number | null;
+  /** Action that produced (or is producing) the analysis; null when none. */
+  analysisAction: AnalysisRequestDTO["action"] | null;
   compare: Load<ComparisonResponseDTO>;
   /** Revision the displayed comparison answered; null when none. */
   compareRevision: number | null;
@@ -45,6 +48,7 @@ export const initialState: DashboardState = {
   spatial: { status: "idle" },
   analysis: { status: "idle" },
   analysisRevision: null,
+  analysisAction: null,
   compare: { status: "idle" },
   compareRevision: null,
 };
@@ -74,7 +78,7 @@ export type Action =
       inputRevision: number;
       error: ApiErrorDTO;
     }
-  | { type: "analysis_started" }
+  | { type: "analysis_started"; action: AnalysisRequestDTO["action"] }
   | { type: "analysis_cancelled" }
   | {
       type: "analysis_finished";
@@ -116,6 +120,7 @@ export function reducer(state: DashboardState, action: Action): DashboardState {
         spatial: { status: "loading" },
         analysis: { status: "idle" },
         analysisRevision: null,
+        analysisAction: null,
         compare: { status: "idle" },
         compareRevision: null,
         propertyAttempt: state.propertyAttempt + 1,
@@ -179,9 +184,14 @@ export function reducer(state: DashboardState, action: Action): DashboardState {
           };
     }
     case "analysis_started":
-      return { ...state, analysis: { status: "loading" }, analysisRevision: null };
+      return {
+        ...state,
+        analysis: { status: "loading" },
+        analysisRevision: null,
+        analysisAction: action.action,
+      };
     case "analysis_cancelled":
-      return { ...state, analysis: { status: "idle" }, analysisRevision: null };
+      return { ...state, analysis: { status: "idle" }, analysisRevision: null, analysisAction: null };
     case "analysis_finished": {
       if (
         !state.selectedId ||

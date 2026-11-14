@@ -53,7 +53,7 @@ describe("dashboard state", () => {
   });
 
   it("discards a late analysis response for an older input revision", () => {
-    let s = reducer(selected(), { type: "analysis_started" });
+    let s = reducer(selected(), { type: "analysis_started", action: "analyze" });
     s = reducer(s, { type: "revision_bumped" });
     // The in-flight request answers an older revision, so it stops loading...
     expect(s.analysis.status).toBe("idle");
@@ -107,14 +107,14 @@ describe("dashboard state", () => {
 
   it("keeps an analysis failure retryable without touching property data", () => {
     let s = reducer(selected(), { type: "property_loaded", propertyId, property });
-    s = reducer(s, { type: "analysis_started" });
+    s = reducer(s, { type: "analysis_started", action: "analyze" });
     s = reducer(s, { type: "analysis_failed", propertyId, inputRevision: 1, error: timeout });
     expect(s.analysis).toEqual({ status: "error", error: timeout });
     expect(s.property.status).toBe("ready");
   });
 
   it("cancel returns the analysis to idle", () => {
-    const s = reducer(reducer(selected(), { type: "analysis_started" }), {
+    const s = reducer(reducer(selected(), { type: "analysis_started", action: "analyze" }), {
       type: "analysis_cancelled",
     });
     expect(s.analysis.status).toBe("idle");
