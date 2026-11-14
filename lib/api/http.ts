@@ -14,12 +14,25 @@ export class HttpInputError extends Error {
     super(message);
   }
 }
+function isAllowedOrigin(request: Request, origin: string): boolean {
+  try {
+    const expected = new URL(process.env.APP_ORIGIN || request.url);
+    const actual = new URL(origin);
+    if (actual.origin !== origin) return false;
+    if (actual.origin === expected.origin) return true;
+    const loopback = new Set(["localhost", "127.0.0.1", "[::1]"]);
+    return loopback.has(expected.hostname) && loopback.has(actual.hostname)
+      && actual.protocol === expected.protocol && actual.port === expected.port;
+  } catch {
+    return false;
+  }
+}
 export async function readJSON<T extends z.ZodType>(
   request: Request,
   schema: T,
 ): Promise<z.infer<T>> {
   const origin = request.headers.get("origin");
-  if (origin && origin !== (process.env.APP_ORIGIN || new URL(request.url).origin))
+  if (origin && !isAllowedOrigin(request, origin))
     throw new HttpInputError("The request origin is not allowed.", 403);
   if (
     !request.headers
