@@ -1,0 +1,25 @@
+import { config } from "dotenv";
+import { readFile } from "node:fs/promises";
+import { expect, it, vi } from "vitest";
+vi.mock("server-only", () => ({}));
+import { runPropertyAnalysis } from "@/lib/agent/analysis";
+import { readAgentConfig } from "@/lib/agent/config";
+import { createComparisonService } from "@/lib/contracts/service";
+import { createRuntimeProviders } from "@/lib/providers/runtime";
+import { AnalysisRequest, AnalysisResponse } from "@/lib/contracts";
+import { f01, property, spatial } from "../fixtures/contracts";
+config({quiet:true});
+it("executes Gemini native planning and all three property tools against deterministic comparison", async () => {
+ const real=process.env.LIVE_SPONSOR_ANALYSIS==="true";
+ if(real) process.env.KESTREL_PROTECTED_PROPERTY=await readFile("sponsor-data/runtime/demo-property.json","utf8");
+ const service=real ? createComparisonService(createRuntimeProviders()) : createComparisonService({property:{async listProperties(){return [property]},async getProperty(){return property}},spatial:{async getSpatialContext(){return spatial}}});
+ const request=AnalysisRequest.parse({... (real ? JSON.parse(await readFile("sponsor-data/runtime/reviewed-scenarios.json","utf8")) : f01),action:"analyze"});
+ const result=AnalysisResponse.parse(await runPropertyAnalysis({request,service,config:readAgentConfig({...process.env,ANALYSIS_ENABLED:"true",FALLBACK_ENABLED:"false"}),signal:AbortSignal.timeout(60000)}));
+ expect(result.status==="complete").toBe(true);
+ if(result.status!=="complete")throw Error("Required analysis inputs were not complete.");
+ expect(["getPropertyContext","proposeScenarios","runComparison","write_todos"].every(name=>result.execution.completedTools.some(t=>t.name===name))).toBe(true);
+ const canonical=await service.compare({contractVersion:request.contractVersion,propertyId:request.propertyId,inputRevision:request.inputRevision,scenarios:request.scenarios,constraints:request.constraints},AbortSignal.timeout(15000));
+ expect(JSON.stringify(result.comparison)===JSON.stringify(canonical.comparison)).toBe(true);
+ expect(result.modelUsage.provider==="gemini").toBe(true);
+ console.info("Live analysis proof",{realSponsor:real,mode:result.execution.dataMode,attempts:result.modelUsage.attempts,elapsedMs:result.execution.elapsedMs,tools:result.execution.completedTools.map(t=>t.name)});
+},90000);
