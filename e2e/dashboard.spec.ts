@@ -68,7 +68,7 @@ test("analysis result renders canonical values and stays labeled synthetic", asy
   await mockApi(page);
   await page.goto("/");
   await page.getByRole("navigation", { name: "Properties" }).getByRole("button", { name: /100 Fictional Example Way/ }).click();
-  await page.getByRole("button", { name: "Run analysis" }).click();
+  await page.getByRole("group", { name: "Analysis actions" }).getByRole("button", { name: "Analyze" }).click();
   await expect(page.getByTestId("analysis-complete")).toBeVisible();
   await expect(page.getByText("$195,000 / yr").first()).toBeVisible();
   await expect(page.getByText("Run data: Synthetic")).toBeVisible();
@@ -79,7 +79,7 @@ test("needs_input is shown as a non-recommendation", async ({ page }) => {
   await mockApi(page, success(needsInput));
   await page.goto("/");
   await page.getByRole("navigation", { name: "Properties" }).getByRole("button", { name: /100 Fictional Example Way/ }).click();
-  await page.getByRole("button", { name: "Run analysis" }).click();
+  await page.getByRole("group", { name: "Analysis actions" }).getByRole("button", { name: "Analyze" }).click();
   await expect(page.getByTestId("analysis-needs-input")).toBeVisible();
   await expect(page.getByTestId("investment-summary")).toHaveCount(0);
 });
@@ -88,7 +88,7 @@ test("retryable failures offer retry; non-retryable do not", async ({ page }) =>
   await mockApi(page, errors.TIMEOUT, 504);
   await page.goto("/");
   await page.getByRole("navigation", { name: "Properties" }).getByRole("button", { name: /100 Fictional Example Way/ }).click();
-  await page.getByRole("button", { name: "Run analysis" }).click();
+  await page.getByRole("group", { name: "Analysis actions" }).getByRole("button", { name: "Analyze" }).click();
   await expect(page.getByRole("region", { name: "Analysis", exact: true }).getByRole("alert")).toContainText("timed out");
   await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
 
@@ -106,7 +106,7 @@ test("narrow viewport has no horizontal page overflow", async ({ page }) => {
   await mockApi(page);
   await page.goto("/");
   await page.getByRole("navigation", { name: "Properties" }).getByRole("button", { name: /100 Fictional Example Way/ }).click();
-  await page.getByRole("button", { name: "Run analysis" }).click();
+  await page.getByRole("group", { name: "Analysis actions" }).getByRole("button", { name: "Analyze" }).click();
   await expect(page.getByTestId("analysis-complete")).toBeVisible();
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
