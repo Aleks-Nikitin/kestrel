@@ -17,10 +17,13 @@ function echo(f: FieldDraft, unit: string, kind: DecimalKind) {
 export function ConstraintsFormView({
   constraints: c,
   validation,
+  need,
   onPatch,
 }: {
   constraints: ConstraintsForm;
   validation: Validation;
+  /** Set when none of the three constraints is supplied. */
+  need?: string | null;
   onPatch: (patch: Partial<ConstraintsForm>) => void;
 }) {
   const err = (f: string) => validation.fieldErrors[`constraints:${f}`] ?? null;
@@ -32,6 +35,11 @@ export function ConstraintsFormView({
         preferred scenario — the server decides, not the browser.
         Supply at least one capital or return constraint to select a preferred alternative.
       </p>
+      {need ? (
+        <p data-testid="constraints-needed" className="mb-3 rounded-md border border-amber-200 bg-amber-50 p-2 text-xs font-medium text-amber-950">
+          Needed: {need}
+        </p>
+      ) : null}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <TextField
           label="Maximum initial investment"

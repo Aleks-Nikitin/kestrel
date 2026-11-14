@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { Needs } from "./readiness";
 import { SelectField, TextAreaField, TextField } from "@/components/kestrel/field";
 import {
   formatByUnit,
@@ -51,6 +52,7 @@ function Group({ title, children, note }: { title: string; children: ReactNode; 
 export function ScenarioFormView({
   scenario: s,
   validation,
+  needs,
   proposals,
   onPatch,
   onRemove,
@@ -58,11 +60,13 @@ export function ScenarioFormView({
 }: {
   scenario: ScenarioForm;
   validation: Validation;
+  needs?: Needs;
   proposals: Partial<Record<ProposalField, Proposal>>;
   onPatch: (patch: Partial<ScenarioForm>) => void;
   onRemove?: () => void;
   year: number;
 }) {
+  const need = (f: string) => needs?.[f] ?? null;
   const err = (f: string) => validation.fieldErrors[`${s.id}:${f}`] ?? null;
   const setField = (key: keyof ScenarioForm, text: string) =>
     onPatch({ [key]: { text, accepted: false } } as Partial<ScenarioForm>);
@@ -111,13 +115,15 @@ export function ScenarioFormView({
             { value: "modified_gross", label: "Modified gross" },
             { value: "nnn", label: "Triple net (NNN)" },
           ]}
-          hint="NNN or unknown will ask for more input before a result is produced."
+          needed={need("leaseBasis")}
+          hint="Only Gross and Modified gross are supported; NNN or Unknown leave results unavailable."
         />
         <TextAreaField
           label="Rent normalization note"
           rows={2}
           value={s.rentNormalizationNote}
           onChange={(v) => onPatch({ rentNormalizationNote: v })}
+          needed={need("rentNormalizationNote")}
           hint="Required for financial calculation, including Gross: disclose annual USD rent per rentable sq ft and which expenses the owner pays."
         />
       </Group>
@@ -133,6 +139,7 @@ export function ScenarioFormView({
           onChange={(v) => setField("rentableAreaSqft", v)}
           origin={originOf(s.rentableAreaSqft)}
           error={err("rentableAreaSqft")}
+          needed={need("rentableAreaSqft")}
           hint={echo(s.rentableAreaSqft, "sqft", "positive")}
           proposal={useProposal("rentableAreaSqft")}
         />
@@ -143,6 +150,7 @@ export function ScenarioFormView({
           onChange={(v) => setField("annualRentPerSqft", v)}
           origin={originOf(s.annualRentPerSqft)}
           error={err("annualRentPerSqft")}
+          needed={need("annualRentPerSqft")}
           hint={echo(s.annualRentPerSqft, "USD/sqft/year", "amount")}
           proposal={useProposal("annualRentPerSqft")}
         />
@@ -153,6 +161,7 @@ export function ScenarioFormView({
           onChange={(v) => setField("occupancyRatio", v)}
           origin={originOf(s.occupancyRatio)}
           error={err("occupancyRatio")}
+          needed={need("occupancyRatio")}
           hint={echo(s.occupancyRatio, "ratio", "ratio") ?? "Enter 0.9 for 90%."}
           proposal={useProposal("occupancyRatio")}
         />
@@ -163,6 +172,7 @@ export function ScenarioFormView({
           onChange={(v) => setField("collectionLossRatio", v)}
           origin={originOf(s.collectionLossRatio)}
           error={err("collectionLossRatio")}
+          needed={need("collectionLossRatio")}
           hint={echo(s.collectionLossRatio, "ratio", "ratio")}
         />
         <TextField
@@ -172,6 +182,7 @@ export function ScenarioFormView({
           onChange={(v) => setField("annualConcessions", v)}
           origin={originOf(s.annualConcessions)}
           error={err("annualConcessions")}
+          needed={need("annualConcessions")}
           hint={echo(s.annualConcessions, "USD/year", "amount")}
         />
         <div className="sm:col-span-2">
@@ -202,7 +213,7 @@ export function ScenarioFormView({
             {s.otherIncomeMode === "none_modeled"
               ? "Sends an explicit zero that you chose; it is recorded as your input."
               : s.otherIncomeMode === "unknown"
-                ? "Left unknown: results that depend on it will be unavailable."
+                ? need("otherIncome") ?? "Left unknown: results that depend on it will be unavailable."
                 : null}
           </p>
           {s.otherIncomeMode === "entered" ? (
@@ -263,6 +274,7 @@ export function ScenarioFormView({
               onChange={(v) => setField("expenseTotal", v)}
               origin={originOf(s.expenseTotal)}
               error={err("expenseTotal")}
+              needed={need("expenseTotal")}
               hint={echo(s.expenseTotal, "USD/year", "amount")}
             />
             <TextAreaField
@@ -271,6 +283,7 @@ export function ScenarioFormView({
               value={s.expenseTotalNote}
               onChange={(v) => onPatch({ expenseTotalNote: v })}
               error={err("expenseTotalNote")}
+              needed={need("expenseTotalNote")}
               hint="Required when a total is entered."
             />
           </>
@@ -286,6 +299,7 @@ export function ScenarioFormView({
               }
               origin={originOf(s.expenseItems[c])}
               error={err(`expenseItems.${c}`)}
+              needed={need(`expenseItems.${c}`)}
               hint={echo(s.expenseItems[c], "USD/year", "amount")}
             />
           ))
@@ -311,6 +325,7 @@ export function ScenarioFormView({
                 onChange={(v) => onPatch({ capex: { ...s.capex, [c]: { text: v, accepted: false } } })}
                 origin={originOf(s.capex[c])}
                 error={err(`capex.${c}`)}
+                needed={need(`capex.${c}`)}
                 hint={echo(s.capex[c], "USD", "amount")}
               />
             ))}
@@ -321,6 +336,7 @@ export function ScenarioFormView({
           onChange={(v) => setField("totalProjectCost", v)}
           origin={originOf(s.totalProjectCost)}
           error={err("totalProjectCost")}
+          needed={need("totalProjectCost")}
           hint="Optional denominator for yield on cost, not upfront capex. Must include the initial investment above and a disclosed basis below."
         />
         <TextAreaField

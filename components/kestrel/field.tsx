@@ -11,7 +11,26 @@ interface Common {
   error?: string | null;
   hint?: ReactNode;
   required?: boolean;
+  /** Why an evidence-backed recommendation still needs this input (never a default). */
+  needed?: string | null;
   className?: string;
+}
+
+
+/** Marks an input the deterministic engine needs before it can recommend. */
+function NeededPill({ show }: { show: boolean }) {
+  return show ? (
+    <span className="ml-1.5 rounded bg-amber-100 px-1.5 py-0.5 align-middle text-[10px] font-semibold uppercase tracking-wide text-amber-900">
+      Needed
+    </span>
+  ) : null;
+}
+function NeededNote({ id, text }: { id: string; text?: string | null }) {
+  return text ? (
+    <p id={id} data-testid="field-needed" className="mt-1 text-xs font-medium text-amber-900">
+      {text}
+    </p>
+  ) : null;
 }
 
 export function TextField({
@@ -24,6 +43,7 @@ export function TextField({
   origin,
   proposal,
   required,
+  needed,
   inputMode = "decimal",
   placeholder,
   className,
@@ -41,7 +61,7 @@ export function TextField({
   disabled?: boolean;
 }) {
   const id = useId();
-  const describedBy = [hint ? `${id}-hint` : "", error ? `${id}-err` : ""]
+  const describedBy = [hint ? `${id}-hint` : "", needed ? `${id}-need` : "", error ? `${id}-err` : ""]
     .filter(Boolean)
     .join(" ");
   return (
@@ -50,6 +70,7 @@ export function TextField({
         <label htmlFor={id} className="text-sm font-medium text-slate-800">
           {label}
           {required ? <span aria-hidden className="text-red-700"> *</span> : null}
+          <NeededPill show={!!needed} />
         </label>
         {origin ? <OriginBadge origin={origin} /> : null}
       </div>
@@ -77,6 +98,7 @@ export function TextField({
           {hint}
         </p>
       ) : null}
+      <NeededNote id={`${id}-need`} text={needed} />
       {proposal ? (
         <button
           type="button"
@@ -101,6 +123,7 @@ export function SelectField<T extends string>({
   onChange,
   options,
   hint,
+  needed,
   className,
 }: Common & {
   value: T;
@@ -112,12 +135,13 @@ export function SelectField<T extends string>({
     <div className={cn("min-w-0", className)}>
       <label htmlFor={id} className="text-sm font-medium text-slate-800">
         {label}
+        <NeededPill show={!!needed} />
       </label>
       <select
         id={id}
         value={value}
         onChange={(e) => onChange(e.target.value as T)}
-        aria-describedby={hint ? `${id}-hint` : undefined}
+        aria-describedby={[hint ? `${id}-hint` : "", needed ? `${id}-need` : ""].filter(Boolean).join(" ") || undefined}
         className={cn(control, "mt-1")}
       >
         {options.map((o) => (
@@ -131,6 +155,7 @@ export function SelectField<T extends string>({
           {hint}
         </p>
       ) : null}
+      <NeededNote id={`${id}-need`} text={needed} />
     </div>
   );
 }
@@ -141,6 +166,7 @@ export function TextAreaField({
   onChange,
   hint,
   error,
+  needed,
   rows = 3,
   className,
 }: Common & { value: string; onChange: (v: string) => void; rows?: number }) {
@@ -149,6 +175,7 @@ export function TextAreaField({
     <div className={cn("min-w-0", className)}>
       <label htmlFor={id} className="text-sm font-medium text-slate-800">
         {label}
+        <NeededPill show={!!needed} />
       </label>
       <textarea
         id={id}
@@ -156,7 +183,7 @@ export function TextAreaField({
         rows={rows}
         onChange={(e) => onChange(e.target.value)}
         aria-invalid={error ? true : undefined}
-        aria-describedby={[hint ? `${id}-hint` : "", error ? `${id}-err` : ""].filter(Boolean).join(" ") || undefined}
+        aria-describedby={[hint ? `${id}-hint` : "", needed ? `${id}-need` : "", error ? `${id}-err` : ""].filter(Boolean).join(" ") || undefined}
         className={cn(control, "mt-1")}
       />
       {hint ? (
@@ -164,6 +191,7 @@ export function TextAreaField({
           {hint}
         </p>
       ) : null}
+      <NeededNote id={`${id}-need`} text={needed} />
       {error ? (
         <p id={`${id}-err`} className="mt-1 text-xs font-medium text-red-700">
           {error}

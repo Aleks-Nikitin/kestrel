@@ -11,6 +11,7 @@ import { ConstraintsFormView } from "./constraints-form";
 import { ComparisonView } from "./comparison-view";
 import { ScenarioFormView } from "./scenario-form";
 import { canAddAlternative, canRemoveAlternative, editorReducer, type EditorAction } from "./editor-state";
+import { readiness } from "./readiness";
 import { initialModel, problemCount, propertyProposals, validateModel } from "./model";
 
 /**
@@ -48,6 +49,7 @@ export function ScenarioWorkspace({
     () => validateModel(model, property.id, inputRevision),
     [model, property.id, inputRevision],
   );
+  const ready = useMemo(() => readiness(model), [model]);
   const proposals = useMemo(() => propertyProposals(property), [property]);
   const active = model.scenarios.find((s) => s.id === activeId) ?? model.scenarios[0];
   const totalProblems = Object.keys(validation.fieldErrors).length + validation.formErrors.length;
@@ -103,6 +105,7 @@ export function ScenarioWorkspace({
         <ConstraintsFormView
           constraints={model.constraints}
           validation={validation}
+          need={ready.constraints}
           onPatch={(patch) => edit({ type: "patch_constraints", patch })}
         />
 
@@ -135,6 +138,12 @@ export function ScenarioWorkspace({
                 >
                   {s.name || (s.role === "baseline" ? "Baseline" : "Alternative")}
                   {s.role === "baseline" ? <span className="ml-1 text-xs text-slate-600">(baseline)</span> : null}
+                  {n === 0 && Object.keys(ready.byScenario[s.id] ?? {}).length > 0 ? (
+                    <span className="ml-2 rounded-full bg-amber-100 px-1.5 text-xs font-medium text-amber-900">
+                      <span className="sr-only">{Object.keys(ready.byScenario[s.id]).length} inputs still needed for a recommendation</span>
+                      <span aria-hidden>{Object.keys(ready.byScenario[s.id]).length} needed</span>
+                    </span>
+                  ) : null}
                   {n > 0 ? (
                     <span className="ml-2 rounded-full bg-red-100 px-1.5 text-xs font-medium text-red-800">
                       <span className="sr-only">{n} problems</span>
@@ -164,6 +173,7 @@ export function ScenarioWorkspace({
             <ScenarioFormView
               scenario={active}
               validation={validation}
+              needs={ready.byScenario[active.id]}
               proposals={proposals}
               year={model.year}
               onPatch={(patch) => edit({ type: "patch_scenario", id: active.id, patch })}
@@ -211,6 +221,16 @@ export function ScenarioWorkspace({
               : "Sends your drafts to the server's deterministic comparison; no AI call is made."}
           </p>
         </div>
+        {ready.total > 0 ? (
+          <p
+            data-testid="readiness-summary"
+            className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950"
+          >
+            <strong>{ready.total} {ready.total === 1 ? "input is" : "inputs are"} still needed for an evidence-backed recommendation.</strong>{" "}
+            You can still calculate: anything unknown stays unavailable and nothing is assumed. Look for the amber
+            {" "}<em>Needed</em> marks on the scenario tabs and the investment constraints.
+          </p>
+        ) : null}
       </div>
 
       <div id="section-comparison" className="mt-6 scroll-mt-16" aria-live="polite">
