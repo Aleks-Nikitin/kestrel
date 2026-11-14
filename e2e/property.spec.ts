@@ -133,3 +133,15 @@ test("narrow viewport: map, list and panels fit without horizontal overflow", as
   );
   expect(overflow).toBeLessThanOrEqual(0);
 });
+
+test("the map element fills its region so markers are clickable, not clipped", async ({ page }) => {
+  await mock(page);
+  await page.goto("/");
+  const region = page.getByTestId("property-map");
+  await expect(region.locator(".maplibregl-map")).toBeVisible();
+  const [r, m] = await Promise.all([region.boundingBox(), region.locator(".maplibregl-map").boundingBox()]);
+  expect(m && r && m.height >= r.height - 1 && m.width >= r.width - 1).toBe(true);
+  // A normal pointer click on the marker (no force) selects the property.
+  await page.getByRole("button", { name: /^Select 100 Fictional/ }).click();
+  await expect(page.getByTestId("footprint-check")).toBeVisible();
+});

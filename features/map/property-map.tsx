@@ -194,7 +194,14 @@ export function PropertyMap({
           data-testid="property-map"
           className="relative h-72 overflow-hidden rounded-lg border border-slate-200 bg-slate-200 sm:h-96"
         >
-          <div ref={container} className="absolute inset-0" />
+          {/* MapLibre's unlayered CSS sets .maplibregl-map to position:relative,
+              which beats Tailwind's layered `absolute inset-0` and collapses the
+              container to zero height (its overflow:hidden then clips the
+              canvas and markers, so clicks hit this region instead). Give the
+              map element an explicitly sized, absolutely positioned parent. */}
+          <div className="absolute inset-0">
+            <div ref={container} className="size-full" />
+          </div>
           {engine === "loading" ? (
             <p
               role="status"
