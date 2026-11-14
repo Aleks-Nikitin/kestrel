@@ -16,6 +16,17 @@ export function buildInvestmentSummary(input: {
   const preferred = response.scenarios.find(
     (s) => s.id === comparison.preferredScenarioId,
   );
+  const knownEvidence = new Set(response.evidence.map((e) => e.id));
+  function inputEvidence(value: unknown): string[] {
+    if (!value || typeof value !== "object") return [];
+    if (Array.isArray(value)) return value.flatMap(inputEvidence);
+    return Object.entries(value).flatMap(([key, child]) =>
+      key === "evidenceIds" && Array.isArray(child)
+        ? child.filter((id): id is string => typeof id === "string" && knownEvidence.has(id))
+        : inputEvidence(child),
+    );
+  }
+  const baseline = response.scenarios.find((s) => s.role === "baseline");
   const headline =
     comparison.conclusion === "insufficient_evidence"
       ? "More evidence is required before naming a preferred use"
@@ -51,7 +62,7 @@ export function buildInvestmentSummary(input: {
         0,
         2000,
       ),
-      evidenceIds: [],
+      evidenceIds: [...new Set([...inputEvidence(scenario), ...inputEvidence(baseline)])],
       metricRefs: fields.map((field) => `${scenario.id}.${field}`),
       kind: "inference" as const,
     };
@@ -59,7 +70,21 @@ export function buildInvestmentSummary(input: {
   return InvestmentSummary.parse({
     preferredScenarioId: comparison.preferredScenarioId,
     headline: headline.slice(0, 2000),
-    claims,
+    claims: [
+      ...(input.property.rentableAreaSqft.value !== null && input.property.rentableAreaSqft.origin === "source_data" ? [{
+        text: `The property record reports ${input.property.rentableAreaSqft.value} sqft of rentable area. Model room areas use a different measurement basis and do not replace this value.`,
+        evidenceIds: input.property.rentableAreaSqft.evidenceIds,
+        metricRefs: [],
+        kind: "fact" as const,
+      }] : []),
+      ...input.spatial.observations.map((observation) => ({
+        text: observation.statement,
+        evidenceIds: observation.evidenceIds,
+        metricRefs: [],
+        kind: "inference" as const,
+      })),
+      ...claims,
+    ],
     limitations: [
       "Preliminary stabilized annual USD screening, not an appraisal or a legal, structural or investment-return certification.",
       "Rent, expenses and conversion costs retain their disclosed source or user-assumption origins. Unknowns are not zeros.",
