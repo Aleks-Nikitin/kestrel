@@ -1,0 +1,11 @@
+.private
+.planning
+sponsor-data
+.env
+.env.*
+!.env.example
+node_modules
+.git
+.playwright
+playwright-report
+test-results
