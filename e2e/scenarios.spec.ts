@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { CatalogResponse, ComparisonRequest } from "@/lib/contracts";
+import { answeringRevision } from "./helpers/revision";
 import { prepareValidScenarios } from "./helpers/scenario";
 import { comparison, errors, property, propertyId, spatial, success } from "../tests/fixtures/contracts";
 
@@ -26,8 +27,9 @@ async function mock(page: Page, compareBody: unknown = success(comparison), stat
   await page.route(`**/api/v1/properties/${propertyId}`, (r) => r.fulfill({ json: success(property) }));
   await page.route(`**/api/v1/properties/${propertyId}/spatial`, (r) => r.fulfill({ json: success(spatial) }));
   await page.route("**/api/v1/scenarios/compare", async (r) => {
-    requests.push(r.request().postDataJSON());
-    await r.fulfill({ status, json: compareBody });
+    const sent = r.request().postDataJSON();
+    requests.push(sent);
+    await r.fulfill({ status, json: answeringRevision(compareBody, sent) });
   });
   return requests;
 }
@@ -129,13 +131,25 @@ test("a retryable server error is shown with a retry that recovers", async ({ pa
     n += 1;
     return n === 1
       ? r.fulfill({ status: 504, json: errors.TIMEOUT })
-      : r.fulfill({ json: success(comparison) });
+      : r.fulfill({ json: answeringRevision(success(comparison), r.request().postDataJSON()) });
   });
   await openEditor(page);
   await page.getByRole("button", { name: "Calculate comparison" }).click();
   await expect(page.getByRole("region", { name: "Scenarios", exact: true }).getByRole("alert")).toBeVisible();
   await page.getByRole("button", { name: /Try again/ }).click();
   await expect(page.getByText(/Why \(from the deterministic comparison\)/)).toBeVisible();
+});
+
+test("a response for a different input revision is rejected, not shown", async ({ page }) => {
+  await mock(page);
+  await page.route("**/api/v1/scenarios/compare", (r) =>
+    r.fulfill({ json: answeringRevision(success(comparison), r.request().postDataJSON(), 7) }),
+  );
+  await openEditor(page);
+  await page.getByRole("button", { name: "Calculate comparison" }).click();
+  const section = page.getByRole("region", { name: "Scenarios", exact: true });
+  await expect(section.getByRole("alert")).toContainText("invalid response");
+  await expect(page.getByTestId("comparison-result")).toHaveCount(0);
 });
 
 test("arrow keys move between scenario tabs", async ({ page }) => {

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { answeringRevision } from "./helpers/revision";
 import { prepareValidScenarios } from "./helpers/scenario";
 import { CatalogResponse } from "@/lib/contracts";
 import {
@@ -43,7 +44,10 @@ async function mockApi(
     r.fulfill({ json: success(spatial) }),
   );
   await page.route("**/api/v1/analysis", (r) =>
-    r.fulfill({ status: analysisStatus, json: analysisBody }),
+    r.fulfill({
+      status: analysisStatus,
+      json: answeringRevision(analysisBody, r.request().postDataJSON()),
+    }),
   );
 }
 

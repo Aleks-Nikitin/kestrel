@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { AnalysisRequest, CatalogResponse } from "@/lib/contracts";
+import { answeringRevision } from "./helpers/revision";
 import { prepareValidScenarios } from "./helpers/scenario";
 import { analysis, errors, needsInput, property, propertyId, spatial, success } from "../tests/fixtures/contracts";
 
@@ -26,8 +27,9 @@ async function mock(page: Page, body: unknown = success(analysis), status = 200)
   await page.route(`**/api/v1/properties/${propertyId}`, (r) => r.fulfill({ json: success(property) }));
   await page.route(`**/api/v1/properties/${propertyId}/spatial`, (r) => r.fulfill({ json: success(spatial) }));
   await page.route("**/api/v1/analysis", async (r) => {
-    requests.push(r.request().postDataJSON());
-    await r.fulfill({ status, json: body });
+    const sent = r.request().postDataJSON();
+    requests.push(sent);
+    await r.fulfill({ status, json: answeringRevision(body, sent) });
   });
   return requests;
 }
@@ -118,7 +120,7 @@ test("unavailable AI says the deterministic comparison still works, and retry re
     n += 1;
     return n === 1
       ? r.fulfill({ status: 503, json: errors.ANALYSIS_UNAVAILABLE })
-      : r.fulfill({ json: success(analysis) });
+      : r.fulfill({ json: answeringRevision(success(analysis), r.request().postDataJSON()) });
   });
   await open(page);
   await action(page, "Analyze").click();
@@ -130,11 +132,24 @@ test("unavailable AI says the deterministic comparison still works, and retry re
   }
 });
 
+test("an analysis answering a different input revision is rejected, not shown", async ({ page }) => {
+  await mock(page);
+  await page.route("**/api/v1/analysis", (r) =>
+    r.fulfill({ json: answeringRevision(success(analysis), r.request().postDataJSON(), 7) }),
+  );
+  await open(page);
+  await action(page, "Analyze").click();
+  await expect(page.getByRole("region", { name: "Analysis", exact: true }).getByRole("alert")).toContainText("invalid response");
+  await expect(page.getByTestId("analysis-complete")).toHaveCount(0);
+});
+
 test("a slow request shows loading with cancel and no invented progress stages", async ({ page }) => {
   await mock(page);
   await page.route("**/api/v1/analysis", async (r) => {
     await new Promise((res) => setTimeout(res, 1500));
-    await r.fulfill({ json: success(analysis) }).catch(() => {});
+    await r
+      .fulfill({ json: answeringRevision(success(analysis), r.request().postDataJSON()) })
+      .catch(() => {});
   });
   await open(page);
   await action(page, "Analyze").click();
