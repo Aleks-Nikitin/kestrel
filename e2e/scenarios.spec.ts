@@ -117,7 +117,7 @@ test("a retryable server error is shown with a retry that recovers", async ({ pa
   });
   await openEditor(page);
   await page.getByRole("button", { name: "Calculate comparison" }).click();
-  await expect(page.getByRole("alert")).toBeVisible();
+  await expect(page.getByRole("region", { name: "Scenarios", exact: true }).getByRole("alert")).toBeVisible();
   await page.getByRole("button", { name: /Try again/ }).click();
   await expect(page.getByText(/Why \(from the deterministic comparison\)/)).toBeVisible();
 });
