@@ -34,12 +34,16 @@ export async function readJSON<T extends z.ZodType>(
   if (!request.body)
     throw new HttpInputError("A JSON request body is required.");
   const reader = request.body.getReader();
+  const signal = AbortSignal.any([request.signal, AbortSignal.timeout(5000)]);
+  const cancelRead = () => { void reader.cancel(signal.reason).catch(() => {}); };
+  signal.addEventListener("abort", cancelRead, { once: true });
   let size = 0;
   const chunks: Uint8Array[] = [];
   try {
     while (true) {
-      request.signal.throwIfAborted();
+      signal.throwIfAborted();
       const chunk = await reader.read();
+      signal.throwIfAborted();
       if (chunk.done) break;
       size += chunk.value.byteLength;
       if (size > cap) {
@@ -49,6 +53,7 @@ export async function readJSON<T extends z.ZodType>(
       chunks.push(chunk.value);
     }
   } finally {
+    signal.removeEventListener("abort", cancelRead);
     reader.releaseLock();
   }
   let data: unknown;
