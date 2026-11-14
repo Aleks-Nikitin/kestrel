@@ -144,6 +144,7 @@ export class MatterportSpatialProvider implements SpatialProvider {
     ) => Promise<CommercialModelMatch[]>,
     private readonly options: {
       reviewedModelId?: string;
+      showcase?: {sid:string;verifiedAt:string};
       permissions: {
         display: boolean;
         modelProcessing: boolean;
@@ -165,12 +166,17 @@ export class MatterportSpatialProvider implements SpatialProvider {
       this.options.reviewedModelId,
     );
     const model = await this.client.getModel(match.modelId, signal);
-    return normalizeMatchedSpatial(
+    const spatial = normalizeMatchedSpatial(
       property,
       match,
       model,
       (this.options.now?.() ?? new Date()).toISOString(),
       this.options.permissions,
     );
+    if(this.options.showcase) {
+      if(this.options.showcase.sid!==model.id) throw new ProviderError("DATA_MISMATCH","Showcase proof does not match the selected model.");
+      return SpatialContext.parse({...spatial,model:{...spatial.model!,showcase:this.options.showcase}});
+    }
+    return spatial;
   }
 }

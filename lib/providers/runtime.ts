@@ -21,6 +21,7 @@ const ProtectedRecord = z.strictObject({
     propertyId: Id,
     modelId: Id,
     source: z.literal("commercial_property_mapping"),
+    showcase: z.strictObject({sid:Id,verifiedAt:z.iso.datetime()}).optional(),
   }),
 });
 export function createRuntimeProviders(): {
@@ -92,7 +93,7 @@ export function createRuntimeProviders(): {
         agreementAccepted: true,
       }),
       async () => [binding],
-      { permissions: permitted },
+      { permissions: permitted, showcase: binding.showcase },
     );
     return { property: propertyProvider, spatial: spatialProvider };
   }
