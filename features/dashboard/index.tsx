@@ -12,11 +12,14 @@ import { PropertyPanel } from "@/features/property/property-panel";
 import { SpatialPanel } from "@/features/property/spatial-panel";
 import { PropertyMap } from "@/features/map/property-map";
 import { AnalysisResult } from "@/features/analysis/analysis-result";
+import { ScenarioWorkspace } from "@/features/scenarios/scenario-workspace";
+import type { ComparisonRequestDTO } from "@/lib/contracts";
 import { analysisRequest } from "./draft";
 import {
   hasSyntheticData,
   initialState,
   isAnalysisStale,
+  isCompareStale,
   reducer,
 } from "./state";
 
@@ -34,6 +37,7 @@ function isAbort(error: unknown) {
 export function Dashboard({ client = apiClient }: { client?: ApiClient }) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const analysisAbort = useRef<AbortController | null>(null);
+  const compareAbort = useRef<AbortController | null>(null);
   const focusDetail = useRef(false);
 
   // Catalog
@@ -80,9 +84,12 @@ export function Dashboard({ client = apiClient }: { client?: ApiClient }) {
     return () => ac.abort();
   }, [client, selectedId, state.propertyAttempt]);
 
-  // Property switch aborts any in-flight analysis.
+  // Property switch aborts any in-flight analysis or comparison.
   useEffect(() => {
-    return () => analysisAbort.current?.abort();
+    return () => {
+      analysisAbort.current?.abort();
+      compareAbort.current?.abort();
+    };
   }, [selectedId]);
 
   // Move focus to the detail heading after a selection so keyboard and
@@ -143,6 +150,58 @@ export function Dashboard({ client = apiClient }: { client?: ApiClient }) {
       });
     }
   }, [client, state.property, state.inputRevision]);
+
+  const runCompare = useCallback(
+    async (request: ComparisonRequestDTO) => {
+      compareAbort.current?.abort();
+      const ac = new AbortController();
+      compareAbort.current = ac;
+      dispatch({ type: "compare_started" });
+      try {
+        const res = await client.compare(request, ac.signal);
+        if (res.ok)
+          dispatch({
+            type: "compare_finished",
+            propertyId: request.propertyId,
+            inputRevision: request.inputRevision,
+            response: res.data,
+          });
+        else
+          dispatch({
+            type: "compare_failed",
+            propertyId: request.propertyId,
+            inputRevision: request.inputRevision,
+            error: res.error,
+          });
+      } catch (e) {
+        if (isAbort(e)) return;
+        dispatch({
+          type: "compare_failed",
+          propertyId: request.propertyId,
+          inputRevision: request.inputRevision,
+          error: {
+            code: "INVALID_INPUT",
+            message: "The comparison request could not be built from the current inputs.",
+            retryable: false,
+            requestId: "client-validation",
+          },
+        });
+      }
+    },
+    [client],
+  );
+
+  const cancelCompare = useCallback(() => {
+    compareAbort.current?.abort();
+    dispatch({ type: "compare_cancelled" });
+  }, []);
+
+  // Any edit advances the revision and abandons a request still in flight.
+  const onEdited = useCallback(() => {
+    compareAbort.current?.abort();
+    analysisAbort.current?.abort();
+    dispatch({ type: "revision_bumped" });
+  }, []);
 
   const cancelAnalysis = useCallback(() => {
     analysisAbort.current?.abort();
@@ -250,6 +309,19 @@ export function Dashboard({ client = apiClient }: { client?: ApiClient }) {
                     ? state.property.data.location.value
                     : null
                 }
+              />
+            ) : null}
+
+            {state.property.status === "ready" ? (
+              <ScenarioWorkspace
+                key={state.property.data.id}
+                property={state.property.data}
+                inputRevision={state.inputRevision}
+                compare={state.compare}
+                stale={isCompareStale(state)}
+                onEdited={onEdited}
+                onCompare={runCompare}
+                onCancel={cancelCompare}
               />
             ) : null}
 
