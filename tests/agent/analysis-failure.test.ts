@@ -10,7 +10,7 @@ class UnavailableModel extends FakeToolCallingModel {
  calls=0;
  constructor(private readonly status:number){super()}
  override bindTools(tools:StructuredTool[]){void tools;return this}
- override async _generate(...args:Parameters<FakeToolCallingModel["_generate"]>){void args;this.calls++;throw Object.assign(new Error("fictional-credential-must-stay-private"),{status:this.status})}
+ override async _generate(...args:Parameters<FakeToolCallingModel["_generate"]>):Promise<never>{void args;this.calls++;throw Object.assign(new Error("fictional-credential-must-stay-private"),{status:this.status})}
 }
 const config=readAgentConfig({ANALYSIS_ENABLED:"true",FALLBACK_ENABLED:"true",OPENROUTER_API_KEY:"fictional-key"});
 const request={...f01,action:"analyze" as const};
