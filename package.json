@@ -20,6 +20,7 @@
     "@turf/boolean-point-in-polygon": "^7.4.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "csv-parse": "^7.0.3",
     "decimal.js": "^10.6.0",
     "deepagents": "^1.16.5",
     "dotenv": "^18.0.10",
