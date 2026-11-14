@@ -1,8 +1,10 @@
 import type { z } from "zod";
 import type { CatalogResponse } from "@/lib/contracts";
 import type {
+  AnalysisRequestDTO,
   AnalysisResponseDTO,
   ApiErrorDTO,
+  ComparisonResponseDTO,
   PropertyDTO,
   SpatialContextDTO,
 } from "@/lib/contracts";
@@ -29,6 +31,11 @@ export interface DashboardState {
   analysis: Load<AnalysisResponseDTO>;
   /** Revision the displayed analysis answered; null when none. */
   analysisRevision: number | null;
+  /** Action that produced (or is producing) the analysis; null when none. */
+  analysisAction: AnalysisRequestDTO["action"] | null;
+  compare: Load<ComparisonResponseDTO>;
+  /** Revision the displayed comparison answered; null when none. */
+  compareRevision: number | null;
 }
 
 export const initialState: DashboardState = {
@@ -41,6 +48,9 @@ export const initialState: DashboardState = {
   spatial: { status: "idle" },
   analysis: { status: "idle" },
   analysisRevision: null,
+  analysisAction: null,
+  compare: { status: "idle" },
+  compareRevision: null,
 };
 
 export type Action =
@@ -54,7 +64,21 @@ export type Action =
   | { type: "spatial_loaded"; propertyId: string; spatial: SpatialContextDTO }
   | { type: "spatial_failed"; propertyId: string; error: ApiErrorDTO }
   | { type: "revision_bumped" }
-  | { type: "analysis_started" }
+  | { type: "compare_started" }
+  | { type: "compare_cancelled" }
+  | {
+      type: "compare_finished";
+      propertyId: string;
+      inputRevision: number;
+      response: ComparisonResponseDTO;
+    }
+  | {
+      type: "compare_failed";
+      propertyId: string;
+      inputRevision: number;
+      error: ApiErrorDTO;
+    }
+  | { type: "analysis_started"; action: AnalysisRequestDTO["action"] }
   | { type: "analysis_cancelled" }
   | {
       type: "analysis_finished";
@@ -96,6 +120,9 @@ export function reducer(state: DashboardState, action: Action): DashboardState {
         spatial: { status: "loading" },
         analysis: { status: "idle" },
         analysisRevision: null,
+        analysisAction: null,
+        compare: { status: "idle" },
+        compareRevision: null,
         propertyAttempt: state.propertyAttempt + 1,
       };
     case "property_retry":
@@ -120,11 +147,51 @@ export function reducer(state: DashboardState, action: Action): DashboardState {
       return { ...state, spatial: { status: "error", error: action.error } };
     case "revision_bumped":
       // Every input edit advances the revision; older answers become stale.
-      return { ...state, inputRevision: state.inputRevision + 1 };
+      // A request still in flight answers an older revision and will be
+      // discarded, so stop showing it as loading.
+      return {
+        ...state,
+        inputRevision: state.inputRevision + 1,
+        analysis:
+          state.analysis.status === "loading" ? { status: "idle" } : state.analysis,
+        compare:
+          state.compare.status === "loading" ? { status: "idle" } : state.compare,
+      };
+    case "compare_started":
+      return { ...state, compare: { status: "loading" }, compareRevision: null };
+    case "compare_cancelled":
+      return { ...state, compare: { status: "idle" }, compareRevision: null };
+    case "compare_finished":
+    case "compare_failed": {
+      if (
+        !state.selectedId ||
+        !isCurrentResponse(
+          { propertyId: state.selectedId, inputRevision: state.inputRevision },
+          { propertyId: action.propertyId, inputRevision: action.inputRevision },
+        )
+      )
+        return state;
+      return action.type === "compare_finished"
+        ? {
+            ...state,
+            compare: { status: "ready", data: action.response },
+            compareRevision: action.inputRevision,
+          }
+        : {
+            ...state,
+            compare: { status: "error", error: action.error },
+            compareRevision: null,
+          };
+    }
     case "analysis_started":
-      return { ...state, analysis: { status: "loading" }, analysisRevision: null };
+      return {
+        ...state,
+        analysis: { status: "loading" },
+        analysisRevision: null,
+        analysisAction: action.action,
+      };
     case "analysis_cancelled":
-      return { ...state, analysis: { status: "idle" }, analysisRevision: null };
+      return { ...state, analysis: { status: "idle" }, analysisRevision: null, analysisAction: null };
     case "analysis_finished": {
       if (
         !state.selectedId ||
@@ -162,6 +229,13 @@ export function isAnalysisStale(state: DashboardState): boolean {
   return (
     state.analysis.status === "ready" &&
     state.analysisRevision !== state.inputRevision
+  );
+}
+
+export function isCompareStale(state: DashboardState): boolean {
+  return (
+    state.compare.status === "ready" &&
+    state.compareRevision !== state.inputRevision
   );
 }
 

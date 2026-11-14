@@ -78,6 +78,12 @@ export function PropertyMap({
         return;
       }
       try {
+        // MapLibre 6 ships its worker as a separate file that bundlers cannot
+        // discover on their own ("Worker failed to load"). Point it at the
+        // installed version, emitted by the bundler as a same-origin asset.
+        ml.setWorkerUrl(
+          new URL("maplibre-gl/dist/maplibre-gl-worker.mjs", import.meta.url).toString(),
+        );
         const map = new ml.Map({
           container: container.current,
           style: resolved ?? PLAIN_STYLE,
@@ -194,7 +200,14 @@ export function PropertyMap({
           data-testid="property-map"
           className="relative h-72 overflow-hidden rounded-lg border border-slate-200 bg-slate-200 sm:h-96"
         >
-          <div ref={container} className="absolute inset-0" />
+          {/* MapLibre's unlayered CSS sets .maplibregl-map to position:relative,
+              which beats Tailwind's layered `absolute inset-0` and collapses the
+              container to zero height (its overflow:hidden then clips the
+              canvas and markers, so clicks hit this region instead). Give the
+              map element an explicitly sized, absolutely positioned parent. */}
+          <div className="absolute inset-0">
+            <div ref={container} className="size-full" />
+          </div>
           {engine === "loading" ? (
             <p
               role="status"
