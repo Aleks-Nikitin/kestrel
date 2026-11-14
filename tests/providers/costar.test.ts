@@ -53,6 +53,12 @@ async function kit(
   return dir;
 }
 describe("CoStar normalization", () => {
+  it("preserves an explicitly recorded address range without inferring scan coverage", () => {
+    const p=normalizeCommercialProperty({...record,primaryAddress:{...record.primaryAddress,streetType:"Rd"},addresses:[{...record.primaryAddress,streetType:"Rd",streetNumberEndRange:"104"}]},at,permissions);
+    expect(p.address.value).toContain("100 Fictional Rd");
+    expect(p.address.note).toContain("Dataset address range: 100–104 Fictional Rd");
+    expect(p.address.note).toContain("does not establish");
+  });
   it("retains units, provenance and unknowns without leaking unrelated fields", () => {
     const p = normalizeCommercialProperty(record, at, permissions);
     expect(p.dataMode).toBe("sponsor_dataset");

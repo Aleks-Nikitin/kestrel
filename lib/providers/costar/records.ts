@@ -6,7 +6,9 @@ import { ProviderError } from "../errors";
 const maybeNumber = z.number().finite().nonnegative().nullable().optional();
 const SourceAddress = z.object({
   streetNumber: z.string().nullable().optional(),
+  streetNumberEndRange: z.string().nullable().optional(),
   streetName: z.string().nullable().optional(),
+  streetType: z.string().nullable().optional(),
   city: z.string().nullable().optional(),
   state: z.string().nullable().optional(),
   postcode: z.string().nullable().optional(),
@@ -23,6 +25,7 @@ export const CommercialRecord = z.object({
   propertyType: z.number().int(),
   constructionStatus: z.number().int(),
   primaryAddress: SourceAddress.nullable().optional(),
+  addresses: z.array(SourceAddress).nullable().optional(),
   grossBuildingAreaSquareFeet: maybeNumber,
   rentableBuildingAreaSquareFeet: maybeNumber,
   numStoriesAboveGrade: z.number().int().positive().nullable().optional(),
@@ -82,7 +85,7 @@ export function normalizeCommercialProperty(
   const decimal = (n: number | null | undefined) =>
     n == null ? null : new Decimal(String(n)).toFixed();
   const a = r.primaryAddress;
-  const street = [a?.streetNumber, a?.streetName].filter(Boolean).join(" ");
+  const street = [a?.streetNumber, a?.streetName, a?.streetType].filter(Boolean).join(" ");
   const address = street
     ? [street, a?.city, a?.state, a?.postcode].filter(Boolean).join(", ")
     : null;
@@ -118,13 +121,17 @@ export function normalizeCommercialProperty(
     ),
   ];
   const year = completionYears.length === 1 ? completionYears[0] : null;
+  const addressFact = fact(address, "text", "primaryAddress (available address components)");
+  const ranges = [...new Set((r.addresses ?? []).filter((entry) =>
+    entry.streetNumber === a?.streetNumber && entry.streetName === a?.streetName
+    && entry.city === a?.city && entry.state === a?.state
+    && entry.streetNumberEndRange && entry.streetNumberEndRange !== entry.streetNumber,
+  ).map((entry) => `${entry.streetNumber}–${entry.streetNumberEndRange} ${[entry.streetName, entry.streetType].filter(Boolean).join(" ")}`))];
+  if (ranges.length && addressFact.value !== null)
+    addressFact.note += ` Dataset address range: ${ranges.join("; ")}. The primary address is retained; an address range does not establish a model's scan coverage.`;
   const result = Property.safeParse({
     id,
-    address: fact(
-      address,
-      "text",
-      "primaryAddress (available address components)",
-    ),
+    address: addressFact,
     location: fact(
       a?.latitude != null && a?.longitude != null
         ? { longitude: a.longitude, latitude: a.latitude }
