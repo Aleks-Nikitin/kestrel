@@ -181,7 +181,10 @@ export async function runPropertyAnalysis({
   if (
     sponsorContent &&
     (!config.sponsorDataProcessingPermitted ||
-      initialEvidence.some((e) => !e.allowedUse.modelProcessing))
+      // Check every original record before display de-duplication. A second
+      // provider must never override a restriction by reusing an evidence ID.
+      [context.property.evidence, context.spatial.evidence, normalized.evidence]
+        .flat().some((e) => !e.allowedUse.modelProcessing))
   )
     throw new AgentExecutionError(
       "LICENSE_RESTRICTED",
