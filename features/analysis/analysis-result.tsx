@@ -3,6 +3,8 @@ import type {
   FinancialResultDTO,
 } from "@/lib/contracts";
 import { DataModeBadge, OriginBadge, Pill } from "@/components/kestrel/badges";
+import { ProvenanceChip, ProvenanceLegend, providerKind } from "@/components/kestrel/provenance";
+import { Lightbulb, TriangleAlert } from "lucide-react";
 import { formatByUnit } from "@/features/dashboard/format";
 
 type Complete = Extract<AnalysisResponseDTO, { status: "complete" }>;
@@ -67,10 +69,20 @@ function ClaimList({
       <h4 className="text-sm font-semibold text-slate-900">{title}</h4>
       <ul className="mt-1 space-y-2 text-sm">
         {claims.map((c) => (
-          <li key={c.text} className="rounded-md border border-slate-200 p-3">
+          <li
+            key={c.text}
+            className={
+              "rounded-lg border bg-white p-3 " +
+              (c.kind === "fact" ? "border-l-4 border-slate-200 border-l-emerald-600" : "border-l-4 border-slate-200 border-l-amber-500")
+            }
+          >
             <p className="text-slate-900">{c.text}</p>
             <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-600">
-              <Pill tone={c.kind === "fact" ? "green" : "amber"}>{c.kind}</Pill>
+              <ProvenanceChip kind={c.kind} />
+              {[...new Set(c.evidenceIds.map((id) => evidence.get(id)?.provider).filter((p) => p !== undefined))].map((p) => (
+                <ProvenanceChip key={p} kind={providerKind(String(p))} />
+              ))}
+              {c.evidenceIds.some((id) => evidence.get(id)?.synthetic) ? <ProvenanceChip kind="synthetic" /> : null}
               {c.metricRefs.length ? <span>Metrics: {c.metricRefs.join(", ")}</span> : null}
             </p>
             {c.evidenceIds.length ? (
@@ -167,6 +179,44 @@ export function AnalysisResult({
         ) : null}
       </div>
 
+      {!stale ? (
+        <div data-testid="investment-summary" className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Investment summary</p>
+            <p className="mt-1 text-lg font-semibold leading-snug text-slate-900">{summary.headline}</p>
+          </div>
+          <ProvenanceLegend />
+          <ClaimList title="Established facts" claims={facts} evidence={evidenceById} />
+          <ClaimList
+            title="Assumptions and inferences (uncertain)"
+            claims={uncertain}
+            evidence={evidenceById}
+          />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-lg bg-amber-50 p-3 ring-1 ring-amber-600/20">
+              <h4 className="flex items-center gap-1.5 text-sm font-semibold text-amber-950">
+                <TriangleAlert className="size-4" aria-hidden /> Limitations
+              </h4>
+              <ul className="mt-1 list-disc pl-5 text-sm text-amber-950">
+                {summary.limitations.map((l) => (
+                  <li key={l}>{l}</li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded-lg bg-sky-50 p-3 ring-1 ring-sky-600/20">
+              <h4 className="flex items-center gap-1.5 text-sm font-semibold text-sky-950">
+                <Lightbulb className="size-4" aria-hidden /> Next steps
+              </h4>
+              <ol className="mt-1 list-decimal pl-5 text-sm text-sky-950">
+                {summary.nextSteps.map((l) => (
+                  <li key={l}>{l}</li>
+                ))}
+              </ol>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <div
         role="region"
         aria-label="Scenario financial comparison"
@@ -235,37 +285,6 @@ export function AnalysisResult({
             )),
           )}
         </ul>
-      ) : null}
-
-      {!stale ? (
-        <div data-testid="investment-summary">
-          <h3 className="text-sm font-semibold text-slate-900">Investment summary</h3>
-          <p className="mt-1 text-base text-slate-900">{summary.headline}</p>
-          <ClaimList title="Established facts" claims={facts} evidence={evidenceById} />
-          <ClaimList
-            title="Assumptions and inferences (uncertain)"
-            claims={uncertain}
-            evidence={evidenceById}
-          />
-          <div className="mt-3 grid gap-4 sm:grid-cols-2">
-            <div>
-              <h4 className="text-sm font-semibold text-slate-900">Limitations</h4>
-              <ul className="mt-1 list-disc pl-5 text-sm text-slate-800">
-                {summary.limitations.map((l) => (
-                  <li key={l}>{l}</li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-sm font-semibold text-slate-900">Next steps</h4>
-              <ul className="mt-1 list-disc pl-5 text-sm text-slate-800">
-                {summary.nextSteps.map((l) => (
-                  <li key={l}>{l}</li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
       ) : null}
 
       <div className="rounded-md bg-slate-50 p-3 text-xs text-slate-700">
