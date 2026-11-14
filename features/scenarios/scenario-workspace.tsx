@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useReducer, useState, type KeyboardEvent } from "react";
+import { useMemo, useReducer, useState, type KeyboardEvent, type ReactNode } from "react";
 import { Calculator, Plus } from "lucide-react";
 import type { ComparisonResponseDTO, ComparisonRequestDTO, PropertyDTO } from "@/lib/contracts";
 import type { Load } from "@/features/dashboard/state";
@@ -27,6 +27,7 @@ export function ScenarioWorkspace({
   onEdited,
   onCompare,
   onCancel,
+  children,
 }: {
   property: PropertyDTO;
   inputRevision: number;
@@ -35,6 +36,8 @@ export function ScenarioWorkspace({
   onEdited: () => void;
   onCompare: (request: ComparisonRequestDTO) => void;
   onCancel: () => void;
+  /** Rendered after the comparison with the editor's validated request (or null when invalid). */
+  children?: (editor: { request: ComparisonRequestDTO | null; problems: number }) => ReactNode;
 }) {
   const [model, dispatch] = useReducer(editorReducer, undefined, () =>
     initialModel(property, new Date().getFullYear()),
@@ -75,12 +78,13 @@ export function ScenarioWorkspace({
   }
 
   return (
+    <>
     <section
       aria-labelledby="scenarios-heading"
       className="rounded-lg border border-slate-200 bg-white p-4 sm:p-5"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 id="scenarios-heading" className="text-lg font-semibold text-slate-900">
+        <h2 id="scenarios-heading" tabIndex={-1} className="text-lg font-semibold text-slate-900 outline-none">
           Scenarios
         </h2>
         <div className="flex flex-wrap items-center gap-2">
@@ -219,5 +223,7 @@ export function ScenarioWorkspace({
         {compare.status === "ready" ? <ComparisonView response={compare.data} stale={stale} /> : null}
       </div>
     </section>
+    {children?.({ request: validation.request, problems: totalProblems })}
+    </>
   );
 }

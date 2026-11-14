@@ -1,10 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useReducer, useRef } from "react";
-import { Play } from "lucide-react";
 import { apiClient } from "@/lib/contracts/client";
-import { Button } from "@/components/ui/button";
-import { DataModeBadge } from "@/components/kestrel/badges";
 import { ErrorPanel, LoadingPanel } from "@/components/kestrel/state-panels";
 import { SyntheticBanner } from "@/components/kestrel/synthetic-banner";
 import { PropertyList } from "@/features/property/property-list";
@@ -12,10 +9,9 @@ import { PropertyPanel } from "@/features/property/property-panel";
 import { SpatialPanel } from "@/features/property/spatial-panel";
 import { Explorer } from "@/features/map/explorer";
 import { resolveTour } from "@/features/map/tour";
-import { AnalysisResult } from "@/features/analysis/analysis-result";
+import { AnalysisPanel } from "@/features/analysis/analysis-panel";
 import { ScenarioWorkspace } from "@/features/scenarios/scenario-workspace";
-import type { ComparisonRequestDTO } from "@/lib/contracts";
-import { analysisRequest } from "./draft";
+import type { AnalysisRequestDTO, ComparisonRequestDTO } from "@/lib/contracts";
 import {
   hasSyntheticData,
   initialState,
@@ -107,50 +103,47 @@ export function Dashboard({ client = apiClient }: { client?: ApiClient }) {
     dispatch({ type: "select", propertyId: id });
   }, []);
 
-  const runAnalysis = useCallback(async () => {
-    if (state.property.status !== "ready") return;
-    const property = state.property.data;
-    const revision = state.inputRevision;
-    analysisAbort.current?.abort();
-    const ac = new AbortController();
-    analysisAbort.current = ac;
-    dispatch({ type: "analysis_started" });
-    try {
-      const res = await client.analyze(
-        analysisRequest(property, revision, new Date().getFullYear()),
-        ac.signal,
-      );
-      if (res.ok)
-        dispatch({
-          type: "analysis_finished",
-          propertyId: property.id,
-          inputRevision: revision,
-          response: res.data,
-        });
-      else
+  const runAnalysis = useCallback(
+    async (request: AnalysisRequestDTO) => {
+      analysisAbort.current?.abort();
+      const ac = new AbortController();
+      analysisAbort.current = ac;
+      dispatch({ type: "analysis_started", action: request.action });
+      try {
+        const res = await client.analyze(request, ac.signal);
+        if (res.ok)
+          dispatch({
+            type: "analysis_finished",
+            propertyId: request.propertyId,
+            inputRevision: request.inputRevision,
+            response: res.data,
+          });
+        else
+          dispatch({
+            type: "analysis_failed",
+            propertyId: request.propertyId,
+            inputRevision: request.inputRevision,
+            error: res.error,
+          });
+      } catch (e) {
+        if (isAbort(e)) return;
+        // A locally invalid request never leaves the browser; surface it
+        // instead of leaving the panel loading forever.
         dispatch({
           type: "analysis_failed",
-          propertyId: property.id,
-          inputRevision: revision,
-          error: res.error,
+          propertyId: request.propertyId,
+          inputRevision: request.inputRevision,
+          error: {
+            code: "INVALID_INPUT",
+            message: "The analysis request could not be built from the current inputs.",
+            retryable: false,
+            requestId: "client-validation",
+          },
         });
-    } catch (e) {
-      if (isAbort(e)) return;
-      // A locally invalid request never leaves the browser; surface it
-      // instead of leaving the panel loading forever.
-      dispatch({
-        type: "analysis_failed",
-        propertyId: property.id,
-        inputRevision: revision,
-        error: {
-          code: "INVALID_INPUT",
-          message: "The analysis request could not be built from the current inputs.",
-          retryable: false,
-          requestId: "client-validation",
-        },
-      });
-    }
-  }, [client, state.property, state.inputRevision]);
+      }
+    },
+    [client],
+  );
 
   const runCompare = useCallback(
     async (request: ComparisonRequestDTO) => {
@@ -329,70 +322,21 @@ export function Dashboard({ client = apiClient }: { client?: ApiClient }) {
                 onEdited={onEdited}
                 onCompare={runCompare}
                 onCancel={cancelCompare}
-              />
+              >
+                {({ request, problems }) => (
+                  <AnalysisPanel
+                    request={request}
+                    problems={problems}
+                    analysis={state.analysis}
+                    action={state.analysisAction}
+                    stale={stale}
+                    onRun={runAnalysis}
+                    onCancel={cancelAnalysis}
+                  />
+                )}
+              </ScenarioWorkspace>
             ) : null}
 
-            {state.property.status === "ready" ? (
-              <section
-                aria-labelledby="analysis-heading"
-                className="rounded-lg border border-slate-200 bg-white p-4 sm:p-5"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <h2 id="analysis-heading" className="text-lg font-semibold">
-                    Analysis
-                  </h2>
-                  <div className="flex items-center gap-2">
-                    {state.analysis.status === "ready" ? (
-                      <DataModeBadge
-                        mode={
-                          state.analysis.data.status === "complete"
-                            ? state.analysis.data.execution.dataMode
-                            : state.analysis.data.property.dataMode
-                        }
-                        prefix="Result"
-                      />
-                    ) : null}
-                    <Button
-                      type="button"
-                      size="sm"
-                      className="bg-slate-900 text-white hover:bg-slate-700"
-                      disabled={state.analysis.status === "loading"}
-                      onClick={runAnalysis}
-                    >
-                      <Play aria-hidden />
-                      {state.analysis.status === "ready" ? "Run again" : "Run analysis"}
-                    </Button>
-                  </div>
-                </div>
-                <p className="mt-1 text-xs text-slate-600">
-                  Sends the baseline draft (known property facts only; unknown
-                  values stay unknown) for server-side calculation. The
-                  scenario editor arrives in a later task.
-                </p>
-                <div className="mt-4">
-                  {state.analysis.status === "idle" ? (
-                    <p className="text-sm text-slate-700">No analysis has been run yet.</p>
-                  ) : null}
-                  {state.analysis.status === "loading" ? (
-                    <LoadingPanel
-                      label="Running analysis…"
-                      rows={4}
-                      onCancel={cancelAnalysis}
-                    />
-                  ) : null}
-                  {state.analysis.status === "error" ? (
-                    <ErrorPanel
-                      what="Analysis"
-                      error={state.analysis.error}
-                      onRetry={runAnalysis}
-                    />
-                  ) : null}
-                  {state.analysis.status === "ready" ? (
-                    <AnalysisResult response={state.analysis.data} stale={stale} />
-                  ) : null}
-                </div>
-              </section>
-            ) : null}
           </div>
         </div>
       </main>

@@ -50,6 +50,51 @@ const COLUMNS: { key: keyof FinancialResultDTO & string; label: string }[] = [
   { key: "yieldOnCost", label: "Yield on cost" },
 ];
 
+type Claim = Complete["summary"]["claims"][number];
+
+function ClaimList({
+  title,
+  claims,
+  evidence,
+}: {
+  title: string;
+  claims: Claim[];
+  evidence: Map<string, Complete["evidence"][number]>;
+}) {
+  if (!claims.length) return null;
+  return (
+    <div className="mt-3">
+      <h4 className="text-sm font-semibold text-slate-900">{title}</h4>
+      <ul className="mt-1 space-y-2 text-sm">
+        {claims.map((c) => (
+          <li key={c.text} className="rounded-md border border-slate-200 p-3">
+            <p className="text-slate-900">{c.text}</p>
+            <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-600">
+              <Pill tone={c.kind === "fact" ? "green" : "amber"}>{c.kind}</Pill>
+              {c.metricRefs.length ? <span>Metrics: {c.metricRefs.join(", ")}</span> : null}
+            </p>
+            {c.evidenceIds.length ? (
+              <ul className="mt-1 text-xs text-slate-700" aria-label="Supporting evidence">
+                {c.evidenceIds.map((id) => {
+                  const e = evidence.get(id);
+                  return (
+                    <li key={id}>
+                      {e ? e.label : id}
+                      {e?.synthetic ? <span className="ml-1 font-medium text-amber-800">(synthetic)</span> : null}
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="mt-1 text-xs text-amber-900">No supporting evidence cited.</p>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export function AnalysisResult({
   response,
   stale,
@@ -83,6 +128,9 @@ export function AnalysisResult({
   const names = new Map(response.scenarios.map((s) => [s.id, s.name]));
   const name = (id: string) => names.get(id) ?? id;
   const { comparison, summary, execution, modelUsage } = response;
+  const evidenceById = new Map(response.evidence.map((e) => [e.id, e]));
+  const facts = summary.claims.filter((c) => c.kind === "fact");
+  const uncertain = summary.claims.filter((c) => c.kind !== "fact");
   const feasibility = new Map(comparison.feasibility.map((f) => [f.scenarioId, f]));
 
   return (
@@ -193,18 +241,12 @@ export function AnalysisResult({
         <div data-testid="investment-summary">
           <h3 className="text-sm font-semibold text-slate-900">Investment summary</h3>
           <p className="mt-1 text-base text-slate-900">{summary.headline}</p>
-          <ul className="mt-2 space-y-2 text-sm">
-            {summary.claims.map((c) => (
-              <li key={c.text} className="rounded-md border border-slate-200 p-3">
-                <p className="text-slate-900">{c.text}</p>
-                <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-600">
-                  <Pill tone={c.kind === "fact" ? "green" : "amber"}>{c.kind}</Pill>
-                  {c.metricRefs.length ? <span>Metrics: {c.metricRefs.join(", ")}</span> : null}
-                  {c.evidenceIds.length ? <span>Evidence: {c.evidenceIds.join(", ")}</span> : null}
-                </p>
-              </li>
-            ))}
-          </ul>
+          <ClaimList title="Established facts" claims={facts} evidence={evidenceById} />
+          <ClaimList
+            title="Assumptions and inferences (uncertain)"
+            claims={uncertain}
+            evidence={evidenceById}
+          />
           <div className="mt-3 grid gap-4 sm:grid-cols-2">
             <div>
               <h4 className="text-sm font-semibold text-slate-900">Limitations</h4>
