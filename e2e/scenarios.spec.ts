@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { CatalogResponse, ComparisonRequest } from "@/lib/contracts";
 import { answeringRevision } from "./helpers/revision";
 import { prepareValidScenarios } from "./helpers/scenario";
+import { openStage } from "./helpers/stage";
 import { comparison, errors, property, propertyId, spatial, success } from "../tests/fixtures/contracts";
 
 // Synthetic fixtures injected at the network boundary only; the compare route
@@ -38,8 +39,8 @@ async function openEditor(page: Page) {
   await page.goto("/");
   // Scope to the list: map markers share the property's accessible name.
   await page.getByRole("list", { name: "Properties" }).getByRole("button").first().click();
-  await expect(page.getByRole("heading", { name: "Scenarios" })).toBeVisible();
   await prepareValidScenarios(page);
+  await expect(page.getByRole("heading", { name: "Underwriting", level: 2 })).toBeVisible();
 }
 
 test("calculates a comparison from valid drafts and shows backend values only", async ({ page }) => {
@@ -107,9 +108,12 @@ test("editing after a result marks it stale", async ({ page }) => {
   await openEditor(page);
   await page.getByRole("button", { name: "Calculate comparison" }).click();
   await expect(page.getByText(/Why \(from the deterministic comparison\)/)).toBeVisible();
+  await openStage(page, "Underwriting");
   await page.getByRole("tab", { name: /Alternative B/ }).click();
   await page.getByLabel(/^Annual rent/).fill("20");
-  await expect(page.getByText(/out of date/i)).toBeVisible();
+  await expect(page.getByTestId("stage-status-comparison")).toHaveText("Out of date");
+  await openStage(page, "Comparison");
+  await expect(page.getByTestId("comparison-result").getByText(/out of date/i)).toBeVisible();
 });
 
 test("alternatives can be added but never fewer than two", async ({ page }) => {
@@ -135,7 +139,7 @@ test("a retryable server error is shown with a retry that recovers", async ({ pa
   });
   await openEditor(page);
   await page.getByRole("button", { name: "Calculate comparison" }).click();
-  await expect(page.getByRole("region", { name: "Scenarios", exact: true }).getByRole("alert")).toBeVisible();
+  await expect(page.getByRole("region", { name: "Comparison", exact: true }).getByRole("alert")).toBeVisible();
   await page.getByRole("button", { name: /Try again/ }).click();
   await expect(page.getByText(/Why \(from the deterministic comparison\)/)).toBeVisible();
 });
@@ -147,7 +151,7 @@ test("a response for a different input revision is rejected, not shown", async (
   );
   await openEditor(page);
   await page.getByRole("button", { name: "Calculate comparison" }).click();
-  const section = page.getByRole("region", { name: "Scenarios", exact: true });
+  const section = page.getByRole("region", { name: "Comparison", exact: true });
   await expect(section.getByRole("alert")).toContainText("invalid response");
   await expect(page.getByTestId("comparison-result")).toHaveCount(0);
 });

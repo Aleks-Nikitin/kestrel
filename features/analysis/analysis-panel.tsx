@@ -8,6 +8,7 @@ import type { AnalysisResponseDTO } from "@/lib/contracts";
 import { Button } from "@/components/ui/button";
 import { DataModeBadge } from "@/components/kestrel/badges";
 import { ErrorPanel, LoadingPanel } from "@/components/kestrel/state-panels";
+import { goToStage } from "@/features/dashboard/stages";
 import { AnalysisResult } from "./analysis-result";
 import {
   ACTIONS,
@@ -24,6 +25,8 @@ import {
  * progress shown is only what the server reports after it responds.
  */
 export function AnalysisPanel({
+  hidden,
+  address,
   request,
   problems,
   analysis,
@@ -32,6 +35,8 @@ export function AnalysisPanel({
   onRun,
   onCancel,
 }: {
+  hidden: boolean;
+  address: string;
   request: ComparisonRequestDTO | null;
   problems: number;
   analysis: Load<AnalysisResponseDTO>;
@@ -54,22 +59,16 @@ export function AnalysisPanel({
   }
 
   function editInputs() {
-    const h = document.getElementById("scenarios-heading");
-    h?.scrollIntoView({ block: "start" });
-    h?.focus();
+    goToStage("underwriting");
   }
 
   return (
-    <section
-      id="section-analysis"
-      aria-labelledby="analysis-heading"
-      className="scroll-mt-28 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 lg:scroll-mt-20"
-    >
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-copper-700">Agent investigation</p>
-          <h2 id="analysis-heading" className="mt-0.5 font-display text-2xl text-slate-900 sm:text-3xl">
-            Analysis
+    <section id="investigation" hidden={hidden} aria-labelledby="investigation-heading" className="stage-in space-y-6">
+      <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+        <div className="min-w-0">
+          <p className="text-sm text-ink-500">{address}</p>
+          <h2 id="investigation-heading" tabIndex={-1} className="type-display mt-1 text-4xl text-ink-950 outline-none sm:text-5xl">
+            Investigation
           </h2>
         </div>
         {analysis.status === "ready" ? (
@@ -82,9 +81,10 @@ export function AnalysisPanel({
             prefix="Result"
           />
         ) : null}
-      </div>
-      <p className="mt-1 text-xs text-slate-600">
-        Sends the scenarios and constraints from the editor above, exactly as
+      </header>
+      <div className="rounded-xl border border-ink-200 bg-white p-4 sm:p-6">
+      <p className="text-xs text-ink-600">
+        Sends the scenarios and constraints from Underwriting, exactly as
         entered, to the server. Calculations are deterministic; the agent only
         explains them. Unknown values stay unknown.
       </p>
@@ -161,7 +161,7 @@ export function AnalysisPanel({
             {analysis.error.code === "ANALYSIS_UNAVAILABLE" ? (
               <p className="text-sm text-slate-800" data-testid="ai-unavailable">
                 The AI explanation is unavailable right now. The deterministic
-                comparison in the Scenarios section above does not depend on it
+                comparison in the Comparison stage does not depend on it
                 and still works.
               </p>
             ) : null}
@@ -182,6 +182,7 @@ export function AnalysisPanel({
             ) : null}
           </div>
         ) : null}
+      </div>
       </div>
     </section>
   );

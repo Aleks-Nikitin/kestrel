@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page } from "@playwright/test";
+import { openStage } from "./stage";
 
 /**
  * Uses the real editor to supply the only inputs the app requires before it
@@ -25,6 +26,8 @@ async function showScenario(page: Page, tab: Locator) {
 }
 
 export async function prepareValidScenarios(page: Page) {
+  // Scenarios are edited in the Underwriting stage.
+  await openStage(page, "Underwriting");
   const tabs = page.getByRole("tab");
   // The editor mounts only once the property has loaded. Callers may arrive
   // straight after clicking a property, so wait for the baseline and both

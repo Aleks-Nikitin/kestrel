@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ExternalLink, Loader2, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 /**
  * After this long without the iframe's load event we show a notice. It is only
@@ -75,7 +74,7 @@ function TourFrame({
   }, []);
 
   return (
-    <div className="relative h-full w-full bg-slate-900" data-testid="tour-viewer" data-sid={sid}>
+    <div className="relative h-full w-full bg-ink-950" data-testid="tour-viewer" data-sid={sid}>
       <iframe
         ref={frame}
         title={title}
@@ -91,7 +90,7 @@ function TourFrame({
         <div className="pointer-events-none absolute inset-0 grid place-items-center">
           <p
             role="status"
-            className="flex items-center gap-2 rounded-full bg-slate-900/85 px-4 py-2 text-sm text-white"
+            className="flex items-center gap-2 rounded-md bg-ink-900/90 px-4 py-2 text-sm text-white"
           >
             <Loader2 className="size-4 animate-spin motion-reduce:animate-none" aria-hidden /> Loading 3D tour…
           </p>
@@ -101,7 +100,7 @@ function TourFrame({
         <div
           role="status"
           data-testid="tour-slow"
-          className="absolute inset-x-2 top-2 z-20 rounded-lg border border-slate-600 bg-slate-900/95 p-3 text-sm text-white shadow-lg sm:inset-x-auto sm:left-3 sm:max-w-md"
+          className="absolute inset-x-2 top-2 z-20 rounded-lg border border-white/20 bg-ink-900/95 p-3 text-sm text-white shadow-lg sm:inset-x-auto sm:left-3 sm:max-w-md"
         >
           <div className="flex items-start justify-between gap-2">
             <p className="font-medium">Still loading the 3D tour</p>
@@ -109,30 +108,30 @@ function TourFrame({
               type="button"
               onClick={() => setDismissed(true)}
               aria-label="Dismiss this notice"
-              className="-m-1 grid size-8 cursor-pointer place-items-center rounded-md text-slate-200 hover:bg-slate-700 focus-visible:outline-2 focus-visible:outline-sky-400"
+              className="-m-1 grid size-8 cursor-pointer place-items-center rounded-md text-ink-200 hover:bg-white/10 focus-visible:outline-buff-200"
             >
               <X className="size-4" aria-hidden />
             </button>
           </div>
-          <p className="mt-1 text-slate-200">
+          <p className="mt-1 text-ink-200">
             Matterport can take a while, and the tour may already be usable. This notice clears itself once it
             loads. The 2D map and all property data are unaffected.
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
-            <Button type="button" size="sm" variant="secondary" onClick={onRetry}>
+            <button type="button" className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md bg-white px-3 text-sm font-medium text-ink-900 hover:bg-ink-100 focus-visible:outline-buff-200" onClick={onRetry}>
               Try again
-            </Button>
+            </button>
             <a
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md bg-white px-3 text-sm font-medium text-slate-900 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-sky-400"
+              className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md bg-white px-3 text-sm font-medium text-ink-900 hover:bg-ink-100 focus-visible:outline-buff-200"
             >
               <ExternalLink className="size-4" aria-hidden /> Open tour in new tab
             </a>
-            <Button type="button" size="sm" variant="secondary" onClick={onBack}>
+            <button type="button" className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md bg-white px-3 text-sm font-medium text-ink-900 hover:bg-ink-100 focus-visible:outline-buff-200" onClick={onBack}>
               Back to 2D map
-            </Button>
+            </button>
           </div>
         </div>
       ) : null}

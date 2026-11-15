@@ -12,13 +12,13 @@ import type { Investigation } from "./investigation";
 export function InvestigationPanel({ investigation: i }: { investigation: Investigation }) {
   return (
     <section
-      aria-labelledby="investigation-heading"
+      aria-labelledby="receipt-heading"
       data-testid="investigation-panel"
       className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6"
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h3 id="investigation-heading" className="flex items-center gap-2 font-display text-xl text-slate-900">
+          <h3 id="receipt-heading" className="flex items-center gap-2 font-display text-xl text-slate-900">
             <Wrench className="size-5 text-copper-700" aria-hidden /> How this was investigated
           </h3>
           <p className="mt-0.5 text-xs text-slate-600">

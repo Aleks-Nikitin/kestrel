@@ -2,8 +2,8 @@ import { Box, Building2, Calculator, FlaskConical, Sparkles, UserRound, type Luc
 import { cn } from "@/lib/utils";
 
 /**
- * Who a piece of information comes from. Icon + words + colour, so colour is
- * never the only signal. Labels follow the frozen evidence provider and
+ * Who a piece of information comes from. Icon + words on a neutral tag, so
+ * colour is never the signal. Labels follow the frozen evidence provider and
  * summary claim kinds; nothing is inferred beyond what the response states.
  */
 export type ProvenanceKind =
@@ -17,17 +17,21 @@ export type ProvenanceKind =
   | "assumption"
   | "synthetic";
 
-const KIND: Record<ProvenanceKind, { label: string; icon: LucideIcon; style: string }> = {
-  costar: { label: "CoStar", icon: Building2, style: "bg-emerald-50 text-emerald-900 ring-emerald-600/30" },
-  matterport: { label: "Matterport", icon: Box, style: "bg-violet-50 text-violet-900 ring-violet-600/30" },
-  vexcel: { label: "Vexcel imagery", icon: Box, style: "bg-cyan-50 text-cyan-900 ring-cyan-600/30" },
-  user: { label: "Your assumption", icon: UserRound, style: "bg-sky-50 text-sky-900 ring-sky-600/30" },
-  calculation: { label: "Server calculation", icon: Calculator, style: "bg-indigo-50 text-indigo-900 ring-indigo-600/30" },
-  inference: { label: "Inference", icon: Sparkles, style: "bg-fuchsia-50 text-fuchsia-900 ring-fuchsia-600/30" },
-  fact: { label: "Fact", icon: Building2, style: "bg-emerald-50 text-emerald-900 ring-emerald-600/30" },
-  assumption: { label: "Assumption", icon: UserRound, style: "bg-amber-50 text-amber-950 ring-amber-600/40" },
-  synthetic: { label: "Synthetic", icon: FlaskConical, style: "bg-amber-50 text-amber-950 ring-amber-600/40 border border-dashed border-amber-600" },
+const KIND: Record<ProvenanceKind, { label: string; icon: LucideIcon; style?: string }> = {
+  costar: { label: "CoStar", icon: Building2 },
+  matterport: { label: "Matterport", icon: Box },
+  vexcel: { label: "Vexcel imagery", icon: Box },
+  user: { label: "Your assumption", icon: UserRound },
+  calculation: { label: "Server calculation", icon: Calculator },
+  inference: { label: "Inference", icon: Sparkles, style: "border-ochre-300 text-ochre-800" },
+  fact: { label: "Fact", icon: Building2, style: "border-spruce-300 text-spruce-800" },
+  assumption: { label: "Assumption", icon: UserRound, style: "border-ochre-300 text-ochre-800" },
+  synthetic: { label: "Synthetic", icon: FlaskConical, style: "border-dashed border-ochre-600 bg-ochre-50 text-ochre-800" },
 };
+
+export const PROVENANCE_LABEL = Object.fromEntries(
+  Object.entries(KIND).map(([k, v]) => [k, v.label]),
+) as Record<ProvenanceKind, string>;
 
 /** Maps the contract's evidence provider onto a chip ("model" is the AI). */
 export function providerKind(provider: string): ProvenanceKind {
@@ -52,7 +56,7 @@ export function ProvenanceChip({ kind, className }: { kind: ProvenanceKind; clas
     <span
       data-provenance={kind}
       className={cn(
-        "inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset",
+        "inline-flex items-center gap-1 whitespace-nowrap rounded-[4px] border border-ink-200 bg-white px-1.5 py-0.5 text-xs font-medium leading-4 text-ink-700",
         k.style,
         className,
       )}
@@ -66,7 +70,7 @@ export function ProvenanceChip({ kind, className }: { kind: ProvenanceKind; clas
 export function ProvenanceLegend() {
   const kinds: ProvenanceKind[] = ["costar", "matterport", "user", "calculation", "inference", "synthetic"];
   return (
-    <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-700" aria-label="Where information comes from">
+    <div className="flex flex-wrap items-center gap-1.5 text-xs text-ink-600" aria-label="Where information comes from">
       <span className="font-medium">Sources:</span>
       {kinds.map((k) => (
         <ProvenanceChip key={k} kind={k} />

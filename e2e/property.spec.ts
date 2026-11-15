@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { CatalogResponse, SpatialContext } from "@/lib/contracts";
 import { property, propertyId, spatial, success } from "../tests/fixtures/contracts";
+import { openStage } from "./helpers/stage";
 
 // Synthetic fixtures injected at the network boundary only.
 const footprint = {
@@ -70,6 +71,7 @@ test("keyboard can select from the list and from the map marker", async ({ page 
   const marker = page.getByRole("button", { name: /^Select 100 Fictional/ });
   await marker.focus();
   await page.keyboard.press("Enter");
+  await openStage(page, "Building");
   await expect(page.getByTestId("footprint-check")).toBeVisible();
 });
 
@@ -83,6 +85,7 @@ test("matched imagery shows capture date, attribution and footprint check; rooms
   await mock(page);
   await page.goto("/");
   await page.getByRole("button", { name: /^Select 100 Fictional/ }).click();
+  await openStage(page, "Building");
   await expect(page.getByText(/Fictional synthetic imagery/)).toBeVisible();
   await expect(page.getByText(/Captured 2026-01-01/)).toBeVisible();
   await expect(page.getByTestId("footprint-check")).toContainText("inside the matched footprint");
@@ -101,6 +104,7 @@ test("unmatched spatial layer shows no imagery, footprint or rooms as evidence",
   await mock(page, success(unmatched));
   await page.goto("/");
   await page.getByRole("button", { name: /^Select 100 Fictional/ }).click();
+  await openStage(page, "Building");
   await expect(page.getByText("Matching imagery unavailable")).toBeVisible();
   await expect(page.locator("[data-room]")).toHaveCount(0);
   await expect(page.getByText(/No matched footprint/)).toBeVisible();
@@ -127,6 +131,7 @@ test("narrow viewport: map, list and panels fit without horizontal overflow", as
   await mock(page);
   await page.goto("/");
   await page.getByRole("button", { name: /100 Fictional Example Way/ }).first().click();
+  await openStage(page, "Building");
   await expect(page.getByTestId("footprint-check")).toBeVisible();
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -150,5 +155,6 @@ test("the map element fills its region so markers are clickable, not clipped", a
   await expect(page.getByText(/Worker failed to load/)).toHaveCount(0);
   // A normal pointer click on the marker (no force) selects the property.
   await page.getByRole("button", { name: /^Select 100 Fictional/ }).click();
+  await openStage(page, "Building");
   await expect(page.getByTestId("footprint-check")).toBeVisible();
 });

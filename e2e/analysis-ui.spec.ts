@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { AnalysisRequest, CatalogResponse } from "@/lib/contracts";
 import { answeringRevision } from "./helpers/revision";
 import { prepareValidScenarios } from "./helpers/scenario";
+import { openStage } from "./helpers/stage";
 import { analysis, errors, needsInput, property, propertyId, spatial, success } from "../tests/fixtures/contracts";
 
 // Synthetic fixtures injected at the network boundary only. The analysis
@@ -37,8 +38,9 @@ async function mock(page: Page, body: unknown = success(analysis), status = 200)
 async function open(page: Page) {
   await page.goto("/");
   await page.getByRole("list", { name: "Properties" }).getByRole("button").first().click();
-  await expect(page.getByRole("heading", { name: "Analysis" })).toBeVisible();
   await prepareValidScenarios(page);
+  await openStage(page, "Investigation");
+  await expect(page.getByRole("heading", { name: "Investigation", level: 2 })).toBeVisible();
 }
 
 const action = (page: Page, name: string) =>
@@ -80,8 +82,10 @@ test("completed tools and evidence are shown after the response; facts and uncer
 test("an invalid editor blocks every action and nothing is sent", async ({ page }) => {
   const requests = await mock(page);
   await open(page);
+  await openStage(page, "Underwriting");
   await page.getByRole("tab", { name: /Alternative A/ }).click();
   await page.getByLabel(/^Annual rent/).fill("12,5");
+  await openStage(page, "Investigation");
   await expect(action(page, "Analyze")).toBeDisabled();
   await expect(action(page, "Summary")).toBeDisabled();
   await expect(page.getByTestId("action-blocked")).toContainText("Fix 1 problem");
@@ -93,8 +97,10 @@ test("editing inputs marks the old report stale and hides its summary", async ({
   await open(page);
   await action(page, "Analyze").click();
   await expect(page.getByTestId("investment-summary")).toBeVisible();
+  await openStage(page, "Underwriting");
   await page.getByRole("tab", { name: /Alternative B/ }).click();
   await page.getByLabel(/^Annual rent/).fill("20");
+  await openStage(page, "Investigation");
   await expect(page.getByText(/Inputs changed after this analysis ran/)).toBeVisible();
   await expect(page.getByTestId("investment-summary")).toHaveCount(0);
 });
@@ -102,13 +108,15 @@ test("editing inputs marks the old report stale and hides its summary", async ({
 test("needs_input is not shown as success and drafts are preserved for resubmission", async ({ page }) => {
   await mock(page, success(needsInput));
   await open(page);
+  await openStage(page, "Underwriting");
   await page.getByRole("tab", { name: /Alternative A/ }).click();
   await page.getByLabel(/^Annual rent/).fill("12.50");
+  await openStage(page, "Investigation");
   await action(page, "Analyze").click();
   await expect(page.getByTestId("analysis-needs-input")).toBeVisible();
   await expect(page.getByTestId("investment-summary")).toHaveCount(0);
   await page.getByRole("button", { name: "Edit scenario inputs" }).click();
-  await expect(page.getByRole("heading", { name: "Scenarios" })).toBeFocused();
+  await expect(page.getByRole("heading", { name: "Underwriting", level: 2 })).toBeFocused();
   await page.getByRole("tab", { name: /Alternative A/ }).click();
   await expect(page.getByLabel(/^Annual rent/)).toHaveValue("12.50");
 });
@@ -139,7 +147,7 @@ test("an analysis answering a different input revision is rejected, not shown", 
   );
   await open(page);
   await action(page, "Analyze").click();
-  await expect(page.getByRole("region", { name: "Analysis", exact: true }).getByRole("alert")).toContainText("invalid response");
+  await expect(page.getByRole("region", { name: "Investigation", exact: true }).getByRole("alert")).toContainText("invalid response");
   await expect(page.getByTestId("analysis-complete")).toHaveCount(0);
 });
 

@@ -1,23 +1,26 @@
 "use client";
 
 import { useCallback, useEffect, useReducer, useRef } from "react";
-import { Box, Calculator, ShieldCheck } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { KestrelMark } from "@/components/kestrel/kestrel-mark";
 import { SiteFooter } from "@/components/kestrel/site-footer";
 import { OverviewLink } from "@/components/kestrel/overview-link";
-import { Reveal } from "@/components/kestrel/motion";
 import { apiClient } from "@/lib/contracts/client";
 import { ErrorPanel, LoadingPanel } from "@/components/kestrel/state-panels";
 import { SyntheticBanner } from "@/components/kestrel/synthetic-banner";
 import { PropertyList } from "@/features/property/property-list";
 import { PropertyHero, PropertyPanel } from "@/features/property/property-panel";
 import { SpatialPanel } from "@/features/property/spatial-panel";
-import { SectionNav } from "./section-nav";
 import { Explorer } from "@/features/map/explorer";
 import { resolveTour } from "@/features/map/tour";
 import { AnalysisPanel } from "@/features/analysis/analysis-panel";
-import { ScenarioWorkspace } from "@/features/scenarios/scenario-workspace";
+import { ComparisonStage } from "@/features/scenarios/comparison-stage";
+import { UnderwritingStage } from "@/features/scenarios/underwriting-stage";
+import { useScenarioEditor } from "@/features/scenarios/use-editor";
 import type { AnalysisRequestDTO, ComparisonRequestDTO } from "@/lib/contracts";
+import { cn } from "@/lib/utils";
+import { StageNav, type StageStatus } from "./stage-nav";
+import { STAGES, useStage, type StageId } from "./stages";
 import {
   hasSyntheticData,
   initialState,
@@ -33,7 +36,7 @@ function isAbort(error: unknown) {
 }
 
 /**
- * Dashboard shell. All data crosses the browser-safe API client, which
+ * Workspace shell. All data crosses the browser-safe API client, which
  * validates every response against the shared contracts. A client can be
  * injected for tests; production uses the default same-origin client.
  */
@@ -95,14 +98,17 @@ export function Dashboard({ client = apiClient }: { client?: ApiClient }) {
     };
   }, [selectedId]);
 
-  // Move focus to the detail heading after a selection so keyboard and
+  const property = state.property.status === "ready" ? state.property.data : null;
+  const { stage, go } = useStage(property !== null);
+
+  // Move focus to the new property's heading after a selection so keyboard and
   // screen-reader users land on the new content.
   useEffect(() => {
     if (state.property.status === "ready" && focusDetail.current) {
       focusDetail.current = false;
-      document.getElementById("property-heading")?.focus();
+      document.getElementById(stage === "building" ? "building-heading" : "property-heading")?.focus();
     }
-  }, [state.property.status]);
+  }, [state.property.status, stage]);
 
   const select = useCallback((id: string) => {
     focusDetail.current = true;
@@ -208,6 +214,22 @@ export function Dashboard({ client = apiClient }: { client?: ApiClient }) {
     dispatch({ type: "analysis_cancelled" });
   }, []);
 
+  const editor = useScenarioEditor(property, state.selectedId, state.inputRevision, onEdited);
+
+  // Submitting is the step from underwriting to comparison: valid drafts are
+  // sent and the result stage opens; invalid drafts stay put and are marked.
+  function calculate() {
+    if (!editor) return;
+    if (!editor.request) {
+      editor.markAttempt();
+      go("underwriting");
+      return;
+    }
+    editor.clearAttempt();
+    void runCompare(editor.request);
+    go("comparison");
+  }
+
   // A footprint is only drawn for a verified match to the selected property.
   const verifiedFootprint =
     state.spatial.status === "ready" &&
@@ -215,48 +237,91 @@ export function Dashboard({ client = apiClient }: { client?: ApiClient }) {
     state.spatial.data.match.status === "verified"
       ? (state.spatial.data.imagery?.footprintGeoJSON ?? null)
       : null;
-  const stale = isAnalysisStale(state);
+  const analysisStale = isAnalysisStale(state);
+  const compareStale = isCompareStale(state);
   const synthetic = hasSyntheticData(state);
+  const tour = resolveTour(state.spatial, state.selectedId);
+  const address = property?.address.value ?? "Selected property";
 
-  const navigable = state.selectedId && state.property.status === "ready";
+  const available = new Set<StageId>(property ? STAGES.map((s) => s.id) : ["overview"]);
+  const status: Partial<Record<StageId, StageStatus>> = {};
+  if (property && editor) {
+    status.overview = { text: "Selected", tone: "quiet", done: true };
+    status.building =
+      tour.status === "available"
+        ? { text: "3D tour ready", tone: "good" }
+        : tour.status === "checking"
+          ? { text: "Checking tour", tone: "quiet" }
+          : { text: "No 3D tour", tone: "quiet" };
+    status.underwriting =
+      editor.totalProblems > 0
+        ? { text: `${editor.totalProblems} to fix`, tone: "attention" }
+        : editor.ready.total > 0
+          ? { text: `${editor.ready.total} inputs open`, tone: "quiet" }
+          : { text: "Inputs complete", tone: "good", done: true };
+    status.comparison =
+      state.compare.status === "loading"
+        ? { text: "Calculating", tone: "quiet" }
+        : state.compare.status === "error"
+          ? { text: "Failed", tone: "attention" }
+          : state.compare.status === "ready"
+            ? compareStale
+              ? { text: "Out of date", tone: "attention" }
+              : { text: "Current", tone: "good", done: true }
+            : { text: "Not run", tone: "quiet" };
+    status.investigation =
+      state.analysis.status === "loading"
+        ? { text: "Running", tone: "quiet" }
+        : state.analysis.status === "error"
+          ? { text: "Unavailable", tone: "attention" }
+          : state.analysis.status === "ready"
+            ? analysisStale
+              ? { text: "Out of date", tone: "attention" }
+              : state.analysis.data.status === "needs_input"
+                ? { text: "Needs input", tone: "attention" }
+                : state.analysis.data.execution.verification
+                  ? { text: "Verified", tone: "good", done: true }
+                  : { text: "Complete", tone: "good", done: true }
+            : { text: "Not run", tone: "quiet" };
+  }
+
+  const onSite = stage === "overview" || stage === "building";
+  const overview = stage === "overview";
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="sticky top-0 z-40 border-b border-espresso-700 bg-espresso-950 text-ivory">
-        <div className="mx-auto flex max-w-[90rem] flex-wrap items-center gap-x-6 gap-y-1 px-4 py-2 sm:px-6">
-          <OverviewLink className="flex items-center gap-3 rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-copper-300">
-            <KestrelMark tone="light" className="size-9 shrink-0" />
-            <div className="leading-tight">
-              <h1 className="text-[15px] font-semibold uppercase tracking-[0.3em]">Kestrel</h1>
-              <p className="hidden text-xs text-ivory/65 sm:block">Commercial property intelligence</p>
-            </div>
+    <div className="flex min-h-screen flex-col bg-ink-50 text-ink-900">
+      <header className="sticky top-0 z-40 bg-ink-950 text-white">
+        <div className="mx-auto flex max-w-[96rem] flex-wrap items-center gap-x-8 px-4 sm:px-6">
+          <OverviewLink className="flex items-center gap-2.5 rounded-md py-2 focus-visible:outline-buff-200">
+            <KestrelMark tone="light" className="size-8 shrink-0" />
+            <h1 className="text-[15px] font-bold tracking-[0.2em] [font-stretch:112%]">KESTREL</h1>
           </OverviewLink>
-          {navigable ? (
-            <SectionNav
-              available={[
-                "section-property",
-                ...(state.spatial.status === "ready" ? ["section-spatial"] : []),
-                "section-scenarios",
-                "section-comparison",
-                "section-analysis",
-              ]}
-            />
+          <div className="order-last -mx-4 min-w-0 basis-full border-t border-white/10 px-1 sm:-mx-6 sm:px-3 lg:order-none lg:mx-0 lg:basis-auto lg:flex-1 lg:border-t-0 lg:px-0">
+            <StageNav stage={stage} available={available} status={status} />
+          </div>
+          {property ? (
+            <p className="ml-auto hidden min-w-0 max-w-[22rem] text-right text-xs leading-tight text-ink-300 md:block">
+              <span className="block truncate text-[13px] font-semibold text-white">{address}</span>
+              {overview ? "Selected property" : <a href="#overview" className="underline underline-offset-2 hover:text-white focus-visible:outline-buff-200">Change property</a>}
+            </p>
           ) : null}
         </div>
       </header>
-      <main id="overview" tabIndex={-1} className="mx-auto max-w-[90rem] scroll-mt-28 space-y-4 px-4 pb-12 pt-5 outline-none sm:px-6 sm:pb-16 sm:pt-8">
-        {synthetic ? <SyntheticBanner /> : null}
+      {synthetic ? <SyntheticBanner /> : null}
 
-        <div className="grid gap-6 lg:grid-cols-[17rem_minmax(0,1fr)] xl:grid-cols-[18rem_minmax(0,1fr)]">
-          <nav aria-labelledby="properties-heading" className="min-w-0 lg:sticky lg:top-24 lg:self-start">
-            <h2
-              id="properties-heading"
-              className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600"
-            >
+      <main id="overview" tabIndex={-1} className="mx-auto w-full max-w-[96rem] flex-1 px-4 pb-16 pt-6 outline-none sm:px-6 sm:pt-8">
+        {/* Overview and Building share one map instance, so both are framings of the same block. */}
+        <div
+          hidden={!onSite}
+          className={cn("grid gap-5", overview && "lg:grid-cols-[18rem_minmax(0,1fr)] xl:grid-cols-[19rem_minmax(0,1.1fr)_minmax(0,1fr)]")}
+        >
+          <nav hidden={!overview} aria-labelledby="properties-heading" className="min-w-0 lg:row-span-3 lg:self-start">
+            <h2 id="properties-heading" className="mb-2 flex items-baseline justify-between text-sm font-semibold text-ink-900">
               Properties
+              {state.catalog.status === "ready" ? (
+                <span className="figure text-xs font-medium text-ink-500">{state.catalog.data.length}</span>
+              ) : null}
             </h2>
-            {state.catalog.status === "loading" ? (
-              <LoadingPanel label="Loading properties…" rows={3} />
-            ) : null}
+            {state.catalog.status === "loading" ? <LoadingPanel label="Loading properties…" rows={3} /> : null}
             {state.catalog.status === "error" ? (
               <ErrorPanel
                 what="Property catalog"
@@ -265,17 +330,12 @@ export function Dashboard({ client = apiClient }: { client?: ApiClient }) {
               />
             ) : null}
             {state.catalog.status === "ready" ? (
-              <PropertyList
-                properties={state.catalog.data}
-                selectedId={state.selectedId}
-                onSelect={select}
-              />
+              <PropertyList properties={state.catalog.data} selectedId={state.selectedId} onSelect={select} />
             ) : null}
           </nav>
 
-          <div className="min-w-0 space-y-8" aria-live="polite">
+          <div hidden={!overview} className="min-w-0 xl:col-span-2" aria-live="polite">
             {!state.selectedId ? <Welcome /> : null}
-
             {state.selectedId && state.property.status === "loading" ? (
               <LoadingPanel label="Loading property details…" rows={5} />
             ) : null}
@@ -286,120 +346,129 @@ export function Dashboard({ client = apiClient }: { client?: ApiClient }) {
                 onRetry={() => dispatch({ type: "property_retry" })}
               />
             ) : null}
-            {state.property.status === "ready" ? (
-              <div id="section-property" className="scroll-mt-28 lg:scroll-mt-20">
-                <PropertyHero property={state.property.data} />
+            {property ? <PropertyHero property={property} /> : null}
+          </div>
+
+          {stage === "building" ? (
+            <header className="stage-in flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+              <div className="min-w-0">
+                <p className="text-sm text-ink-500">{address}</p>
+                <h2 id="building-heading" tabIndex={-1} className="type-display mt-1 text-4xl text-ink-950 outline-none sm:text-5xl">
+                  Building
+                </h2>
               </div>
+              <a href="#underwriting" className="inline-flex min-h-10 items-center gap-2 rounded-md bg-ink-900 px-4 text-sm font-semibold text-buff-100 hover:bg-ink-800">
+                Start underwriting <ArrowRight className="size-4" aria-hidden />
+              </a>
+            </header>
+          ) : null}
+
+          <div className={cn("min-w-0", overview && (property ? "lg:col-start-2" : "lg:col-start-2 xl:col-span-2"))}>
+            {state.catalog.status === "ready" ? (
+              <Explorer
+                compact={overview}
+                prefer3d={stage === "building"}
+                tour={tour}
+                tourTitle={property ? `3D tour of ${property.address.value ?? "selected property"}` : "3D tour"}
+                properties={state.catalog.data}
+                selectedId={state.selectedId}
+                onSelect={select}
+                footprint={verifiedFootprint}
+              />
             ) : null}
+          </div>
 
-            <div id="section-spatial" className="scroll-mt-28 space-y-6 lg:scroll-mt-20">
-              {state.catalog.status === "ready" ? (
-                <Explorer
-                  tour={resolveTour(state.spatial, state.selectedId)}
-                  tourTitle={
-                    state.property.status === "ready"
-                      ? `3D tour of ${state.property.data.address.value ?? "selected property"}`
-                      : "3D tour"
-                  }
-                  properties={state.catalog.data}
-                  selectedId={state.selectedId}
-                  onSelect={select}
-                  footprint={verifiedFootprint}
-                />
-              ) : null}
-
-              {state.selectedId && state.spatial.status === "loading" ? (
-                <LoadingPanel label="Loading spatial evidence…" rows={3} />
-              ) : null}
-              {state.spatial.status === "error" ? (
-                <ErrorPanel
-                  what="Spatial evidence"
-                  error={state.spatial.error}
-                  onRetry={() => dispatch({ type: "property_retry" })}
-                />
-              ) : null}
-              {state.spatial.status === "ready" ? (
-                <Reveal>
-                  <SpatialPanel
-                    spatial={state.spatial.data}
-                    location={
-                      state.property.status === "ready"
-                        ? state.property.data.location.value
-                        : null
-                    }
-                  />
-                </Reveal>
-              ) : null}
+          {property ? (
+            <div hidden={!overview} className="min-w-0 lg:col-start-2 xl:col-start-3">
+              <PropertyPanel property={property} />
             </div>
+          ) : null}
 
-            {state.property.status === "ready" ? (
-              <Reveal>
-                <PropertyPanel property={state.property.data} />
-              </Reveal>
+          <div hidden={stage !== "building"} className="min-w-0 space-y-5">
+            {state.selectedId && state.spatial.status === "loading" ? (
+              <LoadingPanel label="Loading spatial evidence…" rows={3} />
             ) : null}
-
-            {state.property.status === "ready" ? (
-              <ScenarioWorkspace
-                key={state.property.data.id}
-                property={state.property.data}
-                inputRevision={state.inputRevision}
-                compare={state.compare}
-                stale={isCompareStale(state)}
-                onEdited={onEdited}
-                onCompare={runCompare}
-                onCancel={cancelCompare}
-              >
-                {({ request, problems }) => (
-                  <AnalysisPanel
-                    request={request}
-                    problems={problems}
-                    analysis={state.analysis}
-                    action={state.analysisAction}
-                    stale={stale}
-                    onRun={runAnalysis}
-                    onCancel={cancelAnalysis}
-                  />
-                )}
-              </ScenarioWorkspace>
+            {state.spatial.status === "error" ? (
+              <ErrorPanel
+                what="Spatial evidence"
+                error={state.spatial.error}
+                onRetry={() => dispatch({ type: "property_retry" })}
+              />
+            ) : null}
+            {state.spatial.status === "ready" ? (
+              <SpatialPanel spatial={state.spatial.data} location={property ? property.location.value : null} />
             ) : null}
           </div>
         </div>
+
+        {property && editor ? (
+          <>
+            <UnderwritingStage
+              hidden={stage !== "underwriting"}
+              editor={editor}
+              inputRevision={state.inputRevision}
+              hasResult={state.compare.status === "ready"}
+              calculating={state.compare.status === "loading"}
+              onCalculate={calculate}
+            />
+            <ComparisonStage
+              hidden={stage !== "comparison"}
+              address={address}
+              compare={state.compare}
+              stale={compareStale}
+              problems={editor.totalProblems}
+              openInputs={editor.ready.total}
+              onCalculate={calculate}
+              onCancel={cancelCompare}
+            />
+            <AnalysisPanel
+              hidden={stage !== "investigation"}
+              address={address}
+              request={editor.request}
+              problems={editor.totalProblems}
+              analysis={state.analysis}
+              action={state.analysisAction}
+              stale={analysisStale}
+              onRun={runAnalysis}
+              onCancel={cancelAnalysis}
+            />
+          </>
+        ) : null}
       </main>
       <SiteFooter />
     </div>
   );
 }
 
+/** The first screen: what Kestrel is for, and the one thing to do next. */
 function Welcome() {
-  const points = [
-    { icon: Box, text: "Matterport spatial evidence and an explorable 3D tour" },
-    { icon: Calculator, text: "A deterministic, server-calculated income comparison" },
-    { icon: ShieldCheck, text: "An evidence-bound agent summary with a checking receipt" },
-  ];
+  const steps = [
+    ["Explore", "Read the record and walk the building's 3D scan."],
+    ["Underwrite", "Set a baseline and alternative uses, with every assumption labeled."],
+    ["Compare", "Get a deterministic income comparison from the server."],
+    ["Investigate", "Have the analyst explain it, citing the evidence it used."],
+  ] as const;
   return (
-    <section
-      aria-labelledby="welcome-heading"
-      className="overflow-hidden rounded-2xl bg-espresso-900 p-6 text-ivory sm:p-10"
-    >
-      <KestrelMark tone="light" className="size-14" />
-      <h2 id="welcome-heading" className="mt-5 font-display text-3xl leading-tight sm:text-4xl">
-        See the potential in every property.
+    <section aria-labelledby="welcome-heading" className="survey-grid overflow-hidden rounded-xl bg-ink-900 p-6 text-white sm:p-9">
+      <h2 id="welcome-heading" className="type-display max-w-3xl text-[2.6rem] text-buff-100 sm:text-6xl">
+        See what a building could become, and what the evidence supports.
       </h2>
-      <p className="mt-3 max-w-2xl text-base leading-relaxed text-ivory/75">
-        Kestrel screens commercial buildings for reuse, from the facts on record to the room-level
-        spatial evidence behind them.
+      <p className="mt-4 max-w-2xl text-base leading-relaxed text-ink-200">
+        Kestrel screens commercial properties for reuse: the facts on record, a walkable scan of the space,
+        and investment scenarios you can defend line by line.
       </p>
-      <ul className="mt-6 grid gap-3 sm:grid-cols-3">
-        {points.map(({ icon: Icon, text }) => (
-          <li key={text} className="flex items-start gap-3 rounded-lg border border-espresso-600 bg-espresso-800 p-3 text-sm">
-            <Icon className="mt-0.5 size-5 shrink-0 text-copper-300" aria-hidden />
-            <span className="text-ivory/85">{text}</span>
+      <ol className="mt-8 grid gap-x-6 gap-y-4 sm:grid-cols-2 xl:grid-cols-4">
+        {steps.map(([title, text], i) => (
+          <li key={title} className="border-t border-white/20 pt-3">
+            <p className="flex items-baseline gap-2 text-sm font-semibold text-white">
+              <span className="figure text-rufous-300" aria-hidden>{i + 1}</span>
+              {title}
+            </p>
+            <p className="mt-1 text-[13px] leading-5 text-ink-300">{text}</p>
           </li>
         ))}
-      </ul>
-      <p className="mt-6 text-sm font-medium text-copper-200">
-        Select a property to see its facts, spatial evidence and analysis.
-      </p>
+      </ol>
+      <p className="mt-7 text-sm font-medium text-buff-200">Choose a property from the index or the map to begin.</p>
     </section>
   );
 }

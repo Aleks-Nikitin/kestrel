@@ -1,45 +1,32 @@
-"use client";
-
-import type { MouseEvent } from "react";
 import { KestrelMark } from "./kestrel-mark";
 import { OverviewLink } from "./overview-link";
 
-/** Every link targets a section that already exists on the page; nothing is invented. */
+/** Every link targets a workspace stage that exists; a stage that needs a property simply stays put. */
 const LINKS = [
-  { id: "section-property", label: "Property Intelligence" },
-  { id: "section-spatial", label: "Spatial Analysis" },
-  { id: "section-scenarios", label: "Investment Scenarios" },
-  { id: "section-analysis", label: "AI Investigation" },
+  { id: "overview", label: "Property overview" },
+  { id: "building", label: "Building and 3D tour" },
+  { id: "underwriting", label: "Investment scenarios" },
+  { id: "investigation", label: "AI investigation" },
 ] as const;
-
-function go(e: MouseEvent<HTMLAnchorElement>, id: string) {
-  const el = document.getElementById(id);
-  if (!el) return; // section not on screen yet (no property selected): leave the link inert
-  e.preventDefault();
-  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
-  history.replaceState(null, "", `#${id}`);
-}
 
 export function SiteFooter() {
   return (
-    <footer className="mt-10 border-t border-espresso-700 bg-espresso-950 text-ivory">
-      <div className="mx-auto grid max-w-[90rem] gap-8 px-4 py-8 sm:px-6 md:grid-cols-[1.1fr_1fr_1.3fr]">
-        <OverviewLink className="flex items-start gap-3 rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-copper-400">
-          <KestrelMark tone="light" className="size-10 shrink-0" />
-          <div>
-            <p className="font-semibold tracking-[0.28em]">KESTREL</p>
-            <p className="mt-1 text-sm text-stone-300">Commercial Property Intelligence</p>
-          </div>
+    <footer className="mt-auto bg-ink-950 text-ink-200">
+      <div className="mx-auto grid max-w-[96rem] gap-x-10 gap-y-6 px-4 py-8 sm:px-6 md:grid-cols-[auto_1fr_minmax(0,24rem)] md:items-start">
+        <OverviewLink className="flex items-center gap-3 self-start rounded-md focus-visible:outline-buff-200">
+          <KestrelMark tone="light" className="size-9 shrink-0" />
+          <span>
+            <span className="block text-sm font-bold tracking-[0.2em] text-white [font-stretch:112%]">KESTREL</span>
+            <span className="block text-xs text-ink-300">Commercial property intelligence</span>
+          </span>
         </OverviewLink>
         <nav aria-label="Footer sections">
-          <ul className="grid gap-1 text-sm">
+          <ul className="flex flex-wrap gap-x-6 gap-y-1 text-sm md:justify-center">
             {LINKS.map((l) => (
               <li key={l.id}>
                 <a
                   href={`#${l.id}`}
-                  onClick={(e) => go(e, l.id)}
-                  className="inline-flex min-h-8 items-center rounded text-stone-200 underline-offset-4 hover:text-copper-300 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-copper-400"
+                  className="inline-flex min-h-8 items-center text-ink-200 underline-offset-4 hover:text-white hover:underline focus-visible:outline-buff-200"
                 >
                   {l.label}
                 </a>
@@ -47,18 +34,16 @@ export function SiteFooter() {
             ))}
           </ul>
         </nav>
-        <div className="text-sm">
-          <p className="font-medium text-copper-300">Evidence-backed property analysis</p>
-          <p className="mt-1 text-stone-300">
-            Financial scenarios use disclosed assumptions. Independent due diligence is required.
-          </p>
-        </div>
-      </div>
-      <div className="border-t border-espresso-700">
-        <p className="mx-auto max-w-[90rem] px-4 py-3 text-xs text-stone-400 sm:px-6">Kestrel · HackPrinceton 2026</p>
-        <p className="mx-auto max-w-[90rem] px-4 pb-4 text-xs text-stone-400 sm:px-6">
-          Preliminary investment screening only. Not an appraisal, zoning determination or structural inspection.
+        <p className="text-[13px] leading-5 text-ink-300">
+          Evidence-backed property analysis. Financial scenarios use disclosed assumptions; independent due
+          diligence is required.
         </p>
+      </div>
+      <div className="border-t border-white/10">
+        <div className="mx-auto flex max-w-[96rem] flex-wrap justify-between gap-x-6 gap-y-1 px-4 py-3 text-xs text-ink-400 sm:px-6">
+          <p>Kestrel · HackPrinceton 2026</p>
+          <p>Preliminary investment screening only. Not an appraisal, zoning determination or structural inspection.</p>
+        </div>
       </div>
     </footer>
   );

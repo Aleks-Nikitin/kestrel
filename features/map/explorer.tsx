@@ -5,9 +5,11 @@ import { Box, ExternalLink, Map as MapIcon, Maximize2, Minimize2 } from "lucide-
 import { PropertyMap } from "./property-map";
 import { TourViewer } from "./tour-viewer";
 import type { TourState } from "./tour";
-import { Button } from "@/components/ui/button";
 
 type Mode = "2d" | "3d";
+
+const ON_DARK =
+  "inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-md border border-white/25 bg-ink-900/80 px-3 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-ink-800 focus-visible:outline-buff-200";
 
 /** Content of the 3D pane for every tour state; each non-available state offers a way back. */
 export function TourPanel({
@@ -25,19 +27,19 @@ export function TourPanel({
     <div
       role={tour.status === "checking" ? "status" : undefined}
       data-testid={tour.status === "checking" ? "tour-checking" : "tour-unavailable"}
-      className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center text-sm text-slate-800"
+      className="survey-grid flex h-full flex-col items-center justify-center gap-3 p-6 text-center text-sm text-ink-200"
     >
       {tour.status === "checking" ? (
         <p>Checking for a verified 3D tour…</p>
       ) : (
         <>
-          <p className="font-semibold">No 3D tour for this property</p>
+          <p className="type-display text-3xl text-buff-100">No 3D tour for this property</p>
           <p className="max-w-md">{tour.reason}</p>
         </>
       )}
-      <Button type="button" size="sm" variant="outline" onClick={onBack}>
+      <button type="button" className={ON_DARK} onClick={onBack}>
         Back to 2D map
-      </Button>
+      </button>
     </div>
   );
 }
@@ -51,33 +53,49 @@ function onFullscreenChange(cb: () => void) {
 }
 
 const ACTION =
-  "inline-flex min-h-10 cursor-pointer items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-800 transition-colors hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600";
+  "inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-md border border-ink-300 bg-white px-3 text-sm font-medium text-ink-900 transition-colors hover:border-ink-500 hover:bg-ink-50";
 
 /**
- * 2D Map | 3D Tour switch. The map stays mounted (invisible, inert and out of
- * flow) while the tour is shown, so camera, markers and selection survive
- * switching and the tour's own aspect ratio decides the height. The selection
- * itself lives in the dashboard and is never touched here.
+ * 2D map | 3D tour. The map stays mounted (invisible, inert and out of flow)
+ * while the tour is shown, and a tour that has been opened stays mounted while
+ * the map is shown, so the camera, markers and the visitor's place in the tour
+ * all survive switching. Nothing is requested from Matterport until the tour
+ * is first shown. The selection itself lives in the dashboard.
+ *
+ * `compact` is the overview's framing: the map only. `prefer3d` is the building
+ * stage's: open on the tour when one is verified, unless the person chose 2D.
  */
 export function Explorer({
   tour,
   tourTitle,
+  compact = false,
+  prefer3d = false,
   ...mapProps
-}: ComponentProps<typeof PropertyMap> & { tour: TourState; tourTitle: string }) {
-  const [mode, setMode] = useState<Mode>("2d");
-  // A different property starts on the 2D map. Reset during render, not by re-keying, so the map itself
-  // (camera, markers, focus) is never remounted when a marker click changes the selection.
+}: ComponentProps<typeof PropertyMap> & {
+  tour: TourState;
+  tourTitle: string;
+  compact?: boolean;
+  prefer3d?: boolean;
+}) {
+  // An explicit choice made in the switch; a different property starts fresh. Reset during render, not by
+  // re-keying, so the map itself (camera, markers, focus) is never remounted when a marker changes the selection.
+  const [choice, setChoice] = useState<Mode | null>(null);
   const [shownFor, setShownFor] = useState(mapProps.selectedId);
+  const [tourOpenedFor, setTourOpenedFor] = useState<string | null>(null);
   if (shownFor !== mapProps.selectedId) {
     setShownFor(mapProps.selectedId);
-    setMode("2d");
+    setChoice(null);
   }
+  const canShow3d = tour.status === "available";
+  const mode: Mode = compact ? "2d" : (choice ?? (prefer3d && canShow3d ? "3d" : "2d"));
+  if (mode === "3d" && tourOpenedFor !== mapProps.selectedId) setTourOpenedFor(mapProps.selectedId);
+  const tourMounted = mode === "3d" || (tourOpenedFor !== null && tourOpenedFor === mapProps.selectedId && canShow3d);
+
   const name = useId();
   const hintId = useId();
   const frame = useRef<HTMLElement>(null);
   const canFullscreen = useSyncExternalStore(noSubscribe, fullscreenEnabled, () => false);
   const isFullscreen = useSyncExternalStore(onFullscreenChange, fullscreenActive, () => false);
-  const canShow3d = tour.status === "available";
   const disable3d = !canShow3d && mode === "2d";
   const hint =
     tour.status === "unavailable"
@@ -97,8 +115,8 @@ export function Explorer({
   const option = (value: Mode, label: string, icon: React.ReactNode, disabled = false) => (
     <label
       className={
-        "relative inline-flex min-h-9 select-none items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors has-[:checked]:bg-white has-[:checked]:text-slate-900 has-[:checked]:shadow-sm has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-sky-600 " +
-        (disabled ? "cursor-not-allowed text-slate-500" : "cursor-pointer text-slate-700 hover:text-slate-900")
+        "relative inline-flex min-h-9 select-none items-center gap-1.5 rounded-[5px] px-3 text-sm font-medium transition-colors has-[:checked]:bg-ink-900 has-[:checked]:text-white has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-rufous-500 " +
+        (disabled ? "cursor-not-allowed text-ink-400" : "cursor-pointer text-ink-700 hover:text-ink-950")
       }
     >
       <input
@@ -107,7 +125,7 @@ export function Explorer({
         value={value}
         checked={mode === value}
         disabled={disabled}
-        onChange={() => setMode(value)}
+        onChange={() => setChoice(value)}
         aria-describedby={value === "3d" && hint ? hintId : undefined}
         className="sr-only"
       />
@@ -117,69 +135,76 @@ export function Explorer({
   );
 
   return (
-    <div className="space-y-3">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-copper-700">Spatial intelligence</p>
-        <h2 className="mt-0.5 font-display text-2xl text-slate-900 sm:text-3xl">Map and 3D tour</h2>
-      </div>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <fieldset className="m-0 border-0 p-0">
-          <legend className="sr-only">Property view</legend>
-          <div className="inline-flex gap-1 rounded-lg bg-slate-200 p-1">
-            {option("2d", "2D Map", <MapIcon className="size-4" />)}
-            {option("3d", "3D Tour", <Box className="size-4" />, disable3d)}
-          </div>
-        </fieldset>
-        {mode === "3d" && tour.status === "available" ? (
-          <div className="flex flex-wrap items-center gap-2" data-testid="tour-actions">
-            {canFullscreen && !isFullscreen ? (
-              <button type="button" onClick={toggleFullscreen} className={ACTION}>
-                {isFullscreen ? <Minimize2 className="size-4" aria-hidden /> : <Maximize2 className="size-4" aria-hidden />}
-                {isFullscreen ? "Exit full screen" : "Full screen"}
-              </button>
-            ) : null}
-            <a href={tour.url} target="_blank" rel="noopener noreferrer" className={ACTION}>
-              <ExternalLink className="size-4" aria-hidden />
-              Open tour in new tab
-              <span className="sr-only"> (opens Matterport)</span>
-            </a>
-          </div>
-        ) : hint ? (
-          <p id={hintId} className="text-xs text-slate-700" data-testid="tour-hint">
-            {hint}
-          </p>
-        ) : null}
-      </div>
+    <div className="min-w-0 space-y-3">
+      {compact ? null : (
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <fieldset className="m-0 border-0 p-0">
+            <legend className="sr-only">Property view</legend>
+            <div className="inline-flex gap-0.5 rounded-lg border border-ink-200 bg-white p-0.5">
+              {option("2d", "2D Map", <MapIcon className="size-4" />)}
+              {option("3d", "3D Tour", <Box className="size-4" />, disable3d)}
+            </div>
+          </fieldset>
+          {mode === "3d" && tour.status === "available" ? (
+            <div className="flex flex-wrap items-center gap-2" data-testid="tour-actions">
+              {canFullscreen && !isFullscreen ? (
+                <button type="button" onClick={toggleFullscreen} className={ACTION}>
+                  <Maximize2 className="size-4" aria-hidden />
+                  Full screen
+                </button>
+              ) : null}
+              <a href={tour.url} target="_blank" rel="noopener noreferrer" className={ACTION}>
+                <ExternalLink className="size-4" aria-hidden />
+                Open tour in new tab
+                <span className="sr-only"> (opens Matterport)</span>
+              </a>
+            </div>
+          ) : hint ? (
+            <p id={hintId} className="max-w-xl text-[13px] text-ink-600" data-testid="tour-hint">
+              {hint}
+            </p>
+          ) : null}
+        </div>
+      )}
 
-      <div className={"relative " + (mode === "3d" ? "overflow-hidden rounded-2xl" : "")}>
+      <div className="relative">
         <div
-          className={mode === "3d" ? "pointer-events-none invisible absolute inset-x-0 top-0" : undefined}
+          className={mode === "3d" ? "pointer-events-none invisible absolute inset-x-0 top-0" : "relative"}
           aria-hidden={mode === "3d" || undefined}
           inert={mode === "3d"}
         >
-          <PropertyMap {...mapProps} />
+          <PropertyMap
+            {...mapProps}
+            frameClassName={compact ? "h-72 sm:h-96 lg:h-[30rem]" : "h-80 sm:h-[30rem] lg:h-[clamp(30rem,68vh,48rem)]"}
+          />
+          {compact && canShow3d ? (
+            <a href="#building" className={"absolute left-3 top-3 z-10 " + ON_DARK} data-testid="open-tour">
+              <Box className="size-4" aria-hidden /> Walk the 3D tour
+            </a>
+          ) : null}
         </div>
-        {mode === "3d" ? (
+        {tourMounted ? (
           <section
             ref={frame}
+            hidden={mode !== "3d"}
             aria-label="3D tour"
             data-testid="tour-panel"
             data-tour-frame
-            className="relative z-10 h-[min(72vh,36rem)] min-h-96 w-full overflow-hidden rounded-2xl border border-slate-300 bg-espresso-950 shadow-md sm:h-[min(78vh,48rem)] lg:h-[clamp(36rem,82vh,62rem)]"
+            className="relative z-10 h-[min(72vh,36rem)] min-h-96 w-full overflow-hidden rounded-xl bg-ink-950 sm:h-[min(78vh,48rem)] lg:h-[clamp(34rem,78vh,60rem)]"
           >
             {isFullscreen ? (
-              <button type="button" onClick={toggleFullscreen} className={"absolute left-3 top-3 z-30 " + ACTION}>
+              <button type="button" onClick={toggleFullscreen} className={"absolute left-3 top-3 z-30 " + ON_DARK}>
                 <Minimize2 className="size-4" aria-hidden /> Exit full screen
               </button>
             ) : null}
             <div className="absolute inset-0">
-              <TourPanel tour={tour} title={tourTitle} onBack={() => setMode("2d")} />
+              <TourPanel tour={tour} title={tourTitle} onBack={() => setChoice("2d")} />
             </div>
           </section>
         ) : null}
       </div>
       {mode === "3d" && tour.status === "available" ? (
-        <p className="text-xs text-slate-600" data-testid="tour-note">
+        <p className="text-xs text-ink-500" data-testid="tour-note">
           Move through the tour with Matterport&apos;s own controls. Use Dollhouse (top-right of the viewer) for a view of the whole space.
         </p>
       ) : null}

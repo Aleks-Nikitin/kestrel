@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { CatalogResponse } from "@/lib/contracts";
 import { property, propertyId, spatial, success } from "../tests/fixtures/contracts";
+import { openStage } from "./helpers/stage";
 
 // The frozen contract exposes no Showcase SID, so the available-tour path
 // cannot be mocked end to end yet; unit tests cover it through the resolver.
@@ -30,10 +31,14 @@ async function mock(page: Page) {
   return matterport;
 }
 
-test("2D map is the default and Matterport is never contacted", async ({ page }) => {
+test("the map is the default view and Matterport is never contacted", async ({ page }) => {
   const matterport = await mock(page);
   await page.goto("/");
   await page.getByRole("list", { name: "Properties" }).getByRole("button").first().click();
+  // The overview frames the map alone; the 2D/3D switch belongs to the Building stage.
+  await expect(page.getByTestId("property-map").or(page.getByTestId("map-unavailable"))).toBeVisible();
+  await expect(page.getByRole("radio", { name: "2D Map" })).toHaveCount(0);
+  await openStage(page, "Building");
   await expect(page.getByRole("radio", { name: "2D Map" })).toBeChecked();
   await expect(page.getByTestId("property-map").or(page.getByTestId("map-unavailable"))).toBeVisible();
   expect(matterport).toHaveLength(0);
@@ -43,6 +48,7 @@ test("3D Tour is disabled with a stated reason when no verified embeddable model
   await mock(page);
   await page.goto("/");
   await page.getByRole("list", { name: "Properties" }).getByRole("button").first().click();
+  await openStage(page, "Building");
   await expect(page.getByRole("radio", { name: "3D Tour" })).toBeDisabled();
   await expect(page.getByTestId("tour-hint")).toContainText("3D tour unavailable");
   // The room-size schematic remains in the spatial evidence section.
@@ -53,8 +59,10 @@ test("the switch is keyboard reachable and keeps the selection", async ({ page }
   await mock(page);
   await page.goto("/");
   await page.getByRole("list", { name: "Properties" }).getByRole("button").first().click();
+  await openStage(page, "Building");
   await page.getByRole("radio", { name: "2D Map" }).focus();
   await expect(page.getByRole("radio", { name: "2D Map" })).toBeFocused();
+  await openStage(page, "Overview");
   await expect(page.getByRole("heading", { name: /100 Fictional Example Way/, level: 2 })).toBeVisible();
 });
 
@@ -63,6 +71,7 @@ test("the switch fits a phone viewport", async ({ page }) => {
   await mock(page);
   await page.goto("/");
   await page.getByRole("list", { name: "Properties" }).getByRole("button").first().click();
+  await openStage(page, "Building");
   const box = await page.getByRole("radio", { name: "2D Map" }).locator("xpath=ancestor::fieldset").boundingBox();
   expect(box && box.x >= 0 && box.x + box.width <= 375).toBe(true);
 });

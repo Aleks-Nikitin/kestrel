@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { answeringRevision } from "./helpers/revision";
 import { prepareValidScenarios } from "./helpers/scenario";
+import { openStage } from "./helpers/stage";
 import { CatalogResponse } from "@/lib/contracts";
 import {
   analysis,
@@ -63,6 +64,7 @@ test("synthetic data is labeled and selection shows facts, units and spatial evi
   ).toBeFocused();
   await expect(page.getByText("10,000 sq ft").first()).toBeVisible();
   await expect(page.getByText("Unknown — not supplied").first()).toBeVisible();
+  await openStage(page, "Building");
   const sourceValues = page.getByRole("region", { name: "Room source values" });
   await expect(sourceValues).toBeHidden();
   await page.getByText("Source room IDs and values as supplied", { exact: true }).click();
@@ -78,6 +80,7 @@ test("analysis result renders canonical values and stays labeled synthetic", asy
   await page.goto("/");
   await page.getByRole("navigation", { name: "Properties" }).getByRole("button", { name: /100 Fictional Example Way/ }).click();
   await prepareValidScenarios(page);
+  await openStage(page, "Investigation");
   await page.getByRole("group", { name: "Analysis actions" }).getByRole("button", { name: "Analyze" }).click();
   await expect(page.getByTestId("analysis-complete")).toBeVisible();
   await expect(page.getByText("$195,000 / yr").first()).toBeVisible();
@@ -90,6 +93,7 @@ test("needs_input is shown as a non-recommendation", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("navigation", { name: "Properties" }).getByRole("button", { name: /100 Fictional Example Way/ }).click();
   await prepareValidScenarios(page);
+  await openStage(page, "Investigation");
   await page.getByRole("group", { name: "Analysis actions" }).getByRole("button", { name: "Analyze" }).click();
   await expect(page.getByTestId("analysis-needs-input")).toBeVisible();
   await expect(page.getByTestId("investment-summary")).toHaveCount(0);
@@ -100,8 +104,9 @@ test("retryable failures offer retry; non-retryable do not", async ({ page }) =>
   await page.goto("/");
   await page.getByRole("navigation", { name: "Properties" }).getByRole("button", { name: /100 Fictional Example Way/ }).click();
   await prepareValidScenarios(page);
+  await openStage(page, "Investigation");
   await page.getByRole("group", { name: "Analysis actions" }).getByRole("button", { name: "Analyze" }).click();
-  await expect(page.getByRole("region", { name: "Analysis", exact: true }).getByRole("alert")).toContainText("timed out");
+  await expect(page.getByRole("region", { name: "Investigation", exact: true }).getByRole("alert")).toContainText("timed out");
   await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
 
   await page.unroute("**/api/v1/analysis");
@@ -109,7 +114,7 @@ test("retryable failures offer retry; non-retryable do not", async ({ page }) =>
     r.fulfill({ status: 403, json: errors.LICENSE_RESTRICTED }),
   );
   await page.getByRole("button", { name: "Try again" }).click();
-  await expect(page.getByRole("region", { name: "Analysis", exact: true }).getByRole("alert")).toContainText("Restricted by data license");
+  await expect(page.getByRole("region", { name: "Investigation", exact: true }).getByRole("alert")).toContainText("Restricted by data license");
   await expect(page.getByRole("button", { name: "Try again" })).toHaveCount(0);
 });
 
@@ -119,6 +124,7 @@ test("narrow viewport has no horizontal page overflow", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("navigation", { name: "Properties" }).getByRole("button", { name: /100 Fictional Example Way/ }).click();
   await prepareValidScenarios(page);
+  await openStage(page, "Investigation");
   await page.getByRole("group", { name: "Analysis actions" }).getByRole("button", { name: "Analyze" }).click();
   await expect(page.getByTestId("analysis-complete")).toBeVisible();
   const overflow = await page.evaluate(

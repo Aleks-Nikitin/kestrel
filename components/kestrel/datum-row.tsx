@@ -1,14 +1,11 @@
 import type { ReactNode } from "react";
-import {
-  UNIT_LABEL,
-  formatInstant,
-  type DatumView,
-} from "@/features/dashboard/format";
+import { ChevronDown } from "lucide-react";
+import { UNIT_LABEL, formatInstant, type DatumView } from "@/features/dashboard/format";
 import { OriginBadge } from "./badges";
 
 /**
- * One property or scenario field with its provenance. Unknown values are shown
- * as unknown (never as zero) together with the reason supplied by the contract.
+ * One property field with its provenance, as a ledger line. Unknown values are
+ * stated as unknown (never as zero) with the reason supplied by the contract.
  */
 export function DatumRow<T>({
   label,
@@ -21,45 +18,44 @@ export function DatumRow<T>({
 }) {
   const unknown = datum.value === null;
   return (
-    <div className="grid gap-1 border-b border-slate-200 py-3 last:border-b-0 sm:grid-cols-[11rem_1fr] sm:gap-4">
-      <dt className="text-sm font-medium text-slate-600">{label}</dt>
-      <dd className="min-w-0">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          {unknown ? (
-            <span className="text-sm italic text-slate-600">
-              Unknown — not supplied
-            </span>
-          ) : (
-            <span className="tabular-nums text-sm font-medium text-slate-900">
-              {render(datum.value as T)}
-            </span>
-          )}
-          <OriginBadge origin={datum.origin} />
-        </div>
-        <details className="mt-1 text-xs text-slate-600">
-          <summary className="cursor-pointer select-none rounded text-slate-600 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600">
-            Provenance
-          </summary>
-          <dl className="mt-1 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
-            <dt>Unit</dt>
-            <dd>{UNIT_LABEL[datum.unit] ?? datum.unit}</dd>
-            <dt>Retrieved</dt>
-            <dd>{formatInstant(datum.recordedAt)}</dd>
-            <dt>Source date</dt>
-            <dd>{datum.sourceAsOf ?? "Not provided"}</dd>
-            <dt>Evidence</dt>
-            <dd className="break-words">
-              {datum.evidenceIds.length ? datum.evidenceIds.join(", ") : "None"}
-            </dd>
-            {datum.note ? (
-              <>
-                <dt>Note</dt>
-                <dd>{datum.note}</dd>
-              </>
-            ) : null}
-          </dl>
-        </details>
-      </dd>
+    <div className="border-b border-ink-100 py-2.5 last:border-b-0">
+      <details className="group">
+        <summary className="grid cursor-pointer grid-cols-[minmax(0,9.5rem)_minmax(0,1fr)_auto] items-baseline gap-x-4 gap-y-0.5 rounded-sm max-sm:grid-cols-[minmax(0,1fr)_auto]">
+          <span className="type-label max-sm:col-span-2">{label}</span>
+          <span className="min-w-0">
+            {unknown ? (
+              <span className="text-sm text-ink-500">Unknown — not supplied</span>
+            ) : (
+              <span className="figure text-[15px] font-semibold text-ink-900 [overflow-wrap:anywhere]">
+                {render(datum.value as T)}
+              </span>
+            )}
+          </span>
+          <span className="flex items-center gap-2">
+            <OriginBadge origin={datum.origin} />
+            <ChevronDown className="size-3.5 text-ink-400 transition-transform group-open:rotate-180" aria-hidden />
+            <span className="sr-only">Provenance</span>
+          </span>
+        </summary>
+        <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-0.5 rounded-md bg-ink-50 px-3 py-2 text-xs text-ink-600 sm:ml-[10.5rem]">
+          <dt>Unit</dt>
+          <dd>{UNIT_LABEL[datum.unit] ?? datum.unit}</dd>
+          <dt>Retrieved</dt>
+          <dd className="figure">{formatInstant(datum.recordedAt)}</dd>
+          <dt>Source date</dt>
+          <dd className="figure">{datum.sourceAsOf ?? "Not provided"}</dd>
+          <dt>Evidence</dt>
+          <dd className="[overflow-wrap:anywhere]">
+            {datum.evidenceIds.length ? datum.evidenceIds.join(", ") : "None"}
+          </dd>
+          {datum.note ? (
+            <>
+              <dt>Note</dt>
+              <dd>{datum.note}</dd>
+            </>
+          ) : null}
+        </dl>
+      </details>
     </div>
   );
 }

@@ -1,8 +1,11 @@
-import { Building2 } from "lucide-react";
-import { DataModeBadge } from "@/components/kestrel/badges";
 import { cn } from "@/lib/utils";
 import type { PropertySummaryDTO } from "@/features/dashboard/state";
+import { DATA_MODE_LABEL } from "@/features/dashboard/format";
 
+/**
+ * The property index: one ruled schedule rather than a stack of cards. Each
+ * row is a real button, and the map's markers call the same selection.
+ */
 export function PropertyList({
   properties,
   selectedId,
@@ -14,43 +17,39 @@ export function PropertyList({
 }) {
   if (properties.length === 0)
     return (
-      <p className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-700">
+      <p className="rounded-lg border border-ink-200 bg-white p-4 text-sm text-ink-700">
         No properties are available in the catalog.
       </p>
     );
   return (
-    <ul aria-label="Properties" className="space-y-2">
+    <ul aria-label="Properties" className="overflow-hidden rounded-lg border border-ink-200 bg-white">
       {properties.map((p) => {
         const selected = p.id === selectedId;
         return (
-          <li key={p.id}>
+          <li key={p.id} className="border-b border-ink-100 last:border-b-0">
             <button
               type="button"
               aria-pressed={selected}
               onClick={() => onSelect(p.id)}
               className={cn(
-                "w-full cursor-pointer rounded-xl border bg-white p-3.5 text-left shadow-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-copper-600",
-                selected
-                  ? "border-copper-600 bg-copper-50 ring-2 ring-copper-600/25"
-                  : "border-slate-200 hover:border-copper-400",
+                "group relative block w-full cursor-pointer px-4 py-3.5 text-left transition-colors focus-visible:-outline-offset-2",
+                selected ? "bg-ink-900 text-white" : "hover:bg-ink-50",
               )}
             >
-              <span className="flex items-start gap-3">
-                <Building2
-                  className={cn("mt-0.5 size-5 shrink-0", selected ? "text-copper-700" : "text-slate-500")}
-                  aria-hidden
-                />
-                <span className="min-w-0">
-                  <span className="block text-sm font-semibold leading-snug text-slate-900">
-                    {p.address.value ?? "Address unknown"}
-                  </span>
-                  <span className="mt-0.5 block text-xs text-slate-600">
-                    {p.propertyType.value ?? "Type unknown"}
-                  </span>
-                  <span className="mt-2 block">
-                    <DataModeBadge mode={p.dataMode} />
-                  </span>
-                </span>
+              <span
+                aria-hidden
+                className={cn(
+                  "absolute inset-y-0 left-0 w-1 transition-colors",
+                  selected ? "bg-rufous-500" : "bg-transparent group-hover:bg-ink-300",
+                )}
+              />
+              <span className={cn("block text-[15px] font-semibold leading-snug", selected ? "text-white" : "text-ink-900")}>
+                {p.address.value ?? "Address unknown"}
+              </span>
+              <span className={cn("mt-1 flex flex-wrap items-center gap-x-2 text-xs", selected ? "text-ink-300" : "text-ink-500")}>
+                <span>{p.propertyType.value ?? "Type unknown"}</span>
+                <span aria-hidden className={cn("h-3 w-px", selected ? "bg-ink-600" : "bg-ink-200")} />
+                <span data-mode={p.dataMode}>{DATA_MODE_LABEL[p.dataMode] ?? p.dataMode}</span>
               </span>
             </button>
           </li>

@@ -159,6 +159,23 @@ body {
   color: var(--color-ink-950);
 }
 
+@layer components {
+  /* Condensed Archivo for addresses and stage titles: the lettering of a drawing title block. */
+  .type-display {
+    font-stretch: 76%;
+    font-weight: 600;
+    letter-spacing: -0.012em;
+    line-height: 1.02;
+  }
+  /* Quiet field and column labels. Sentence case, never tracked capitals. */
+  .type-label {
+    font-size: 0.75rem;
+    line-height: 1.1rem;
+    font-weight: 500;
+    color: var(--color-ink-500);
+  }
+}
+
 /* Figures line up in every table, ledger and input. */
 .figure {
   font-variant-numeric: tabular-nums lining-nums;

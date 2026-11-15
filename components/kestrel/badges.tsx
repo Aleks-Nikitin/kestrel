@@ -1,71 +1,68 @@
 import { cn } from "@/lib/utils";
-import {
-  DATA_MODE_LABEL,
-  ORIGIN_LABEL,
-  type Origin,
-} from "@/features/dashboard/format";
+import { DATA_MODE_LABEL, ORIGIN_LABEL, type Origin } from "@/features/dashboard/format";
 
-// Plain Tailwind palette on purpose: the shared stylesheet does not define
-// shadcn theme tokens yet, so token-based variants would render unstyled.
-const ORIGIN_STYLE: Record<Origin, string> = {
-  source_data: "bg-emerald-50 text-emerald-800 ring-emerald-600/30",
-  user_input: "bg-sky-50 text-sky-800 ring-sky-600/30",
-  derived_calculation: "bg-indigo-50 text-indigo-800 ring-indigo-600/30",
-  explicit_estimate: "bg-amber-50 text-amber-900 ring-amber-600/40",
-  unknown: "bg-slate-100 text-slate-700 ring-slate-500/30 border-dashed",
+/*
+ * Provenance is carried by a small mark plus a word, on neutral ink. Each
+ * origin has its own shape so the distinction never depends on colour.
+ */
+const ORIGIN_MARK: Record<Origin, string> = {
+  source_data: "size-2 rounded-[1px] bg-spruce-600",
+  user_input: "size-2 rounded-full bg-ink-500",
+  derived_calculation: "size-[7px] rotate-45 bg-ink-900",
+  explicit_estimate: "size-2 rounded-full border-[1.5px] border-ochre-600",
+  unknown: "size-2 rounded-full border border-dashed border-ink-400",
 };
 
-const pill =
-  "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset whitespace-nowrap";
-
-export function OriginBadge({ origin }: { origin: Origin }) {
+export function OriginBadge({ origin, className }: { origin: Origin; className?: string }) {
   return (
-    <span className={cn(pill, ORIGIN_STYLE[origin])} data-origin={origin}>
+    <span
+      data-origin={origin}
+      className={cn("inline-flex items-center gap-1.5 whitespace-nowrap text-xs text-ink-600", className)}
+    >
+      <span aria-hidden className={cn("inline-block shrink-0", ORIGIN_MARK[origin])} />
       {ORIGIN_LABEL[origin]}
     </span>
   );
 }
 
+const tag =
+  "inline-flex items-center gap-1 whitespace-nowrap rounded-[4px] border px-1.5 py-0.5 text-xs font-medium leading-4";
+
 const MODE_STYLE: Record<string, string> = {
-  synthetic: "bg-fuchsia-50 text-fuchsia-900 ring-fuchsia-600/40",
-  live: "bg-emerald-50 text-emerald-800 ring-emerald-600/30",
-  sponsor_dataset: "bg-emerald-50 text-emerald-800 ring-emerald-600/30",
-  licensed_cache: "bg-sky-50 text-sky-800 ring-sky-600/30",
-  mixed: "bg-amber-50 text-amber-900 ring-amber-600/40",
-  unavailable: "bg-slate-100 text-slate-700 ring-slate-500/30",
+  synthetic: "border-dashed border-ochre-600 bg-ochre-50 text-ochre-800",
+  live: "border-spruce-300 bg-spruce-50 text-spruce-800",
+  sponsor_dataset: "border-spruce-300 bg-spruce-50 text-spruce-800",
+  licensed_cache: "border-ink-300 bg-white text-ink-700",
+  mixed: "border-ochre-300 bg-ochre-50 text-ochre-800",
+  unavailable: "border-ink-200 bg-ink-50 text-ink-600",
 };
 
-export function DataModeBadge({
-  mode,
-  prefix,
-}: {
-  mode: string;
-  prefix?: string;
-}) {
+export function DataModeBadge({ mode, prefix }: { mode: string; prefix?: string }) {
   return (
-    <span
-      className={cn(pill, MODE_STYLE[mode] ?? MODE_STYLE.unavailable)}
-      data-mode={mode}
-    >
+    <span className={cn(tag, MODE_STYLE[mode] ?? MODE_STYLE.unavailable)} data-mode={mode}>
       {prefix ? `${prefix}: ` : ""}
       {DATA_MODE_LABEL[mode] ?? mode}
     </span>
   );
 }
 
+const TONES = {
+  slate: "border-ink-200 bg-ink-50 text-ink-700",
+  green: "border-spruce-300 bg-spruce-50 text-spruce-800",
+  amber: "border-ochre-300 bg-ochre-50 text-ochre-800",
+  red: "border-brick-300 bg-brick-50 text-brick-800",
+  blue: "border-rufous-300 bg-rufous-50 text-rufous-800",
+  ink: "border-ink-900 bg-ink-900 text-buff-100",
+} as const;
+
 export function Pill({
   children,
   tone = "slate",
+  className,
 }: {
   children: React.ReactNode;
-  tone?: "slate" | "green" | "amber" | "red" | "blue";
+  tone?: keyof typeof TONES;
+  className?: string;
 }) {
-  const tones = {
-    slate: "bg-slate-100 text-slate-700 ring-slate-500/30",
-    green: "bg-emerald-50 text-emerald-800 ring-emerald-600/30",
-    amber: "bg-amber-50 text-amber-900 ring-amber-600/40",
-    red: "bg-red-50 text-red-800 ring-red-600/30",
-    blue: "bg-sky-50 text-sky-800 ring-sky-600/30",
-  } as const;
-  return <span className={cn(pill, tones[tone])}>{children}</span>;
+  return <span className={cn(tag, TONES[tone], className)}>{children}</span>;
 }

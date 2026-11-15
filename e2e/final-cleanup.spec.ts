@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { CatalogResponse } from "@/lib/contracts";
 import { property, spatial, success } from "../tests/fixtures/contracts";
+import { openStage } from "./helpers/stage";
 
 async function open(page: Page) {
   const p = structuredClone(property);
@@ -17,7 +18,7 @@ async function open(page: Page) {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
   await page.getByRole("list", { name: "Properties" }).getByRole("button").first().click();
-  await expect(page.getByTestId("room-measurements")).toBeVisible();
+  await expect(page.locator("#property-heading")).toBeVisible();
   return { calls: () => apiCalls, p };
 }
 
@@ -33,6 +34,9 @@ test("headline hides unavailable and estimated metrics while details and subtle 
   await expect(page.getByRole("banner")).not.toContainText("Preliminary");
   await expect(page.getByText(/Not an appraisal, zoning determination or structural inspection\./)).toHaveCount(1);
   await expect(page.locator("footer")).toContainText("Preliminary investment screening only");
+  await openStage(page, "Building");
+  await expect(page.getByTestId("room-measurements")).toBeVisible();
+  await openStage(page, "Underwriting");
   const summary = page.getByTestId("readiness-summary");
   await expect(summary).toContainText("You can calculate a partial comparison now");
   await summary.getByText("Review 37 scenario-input gaps", { exact: true }).click();
@@ -45,8 +49,10 @@ test("headline hides unavailable and estimated metrics while details and subtle 
 
 test("header and footer logo navigate by keyboard and pointer without clearing drafts or fetching", async ({ page }) => {
   const state = await open(page);
+  await openStage(page, "Underwriting");
   await page.getByRole("button", { name: "Load illustrative investment example", exact: true }).click();
   await page.getByRole("tabpanel").getByLabel(/^Annual rent/).fill("14.25");
+  await openStage(page, "Investigation");
   await page.getByLabel(/Question for the analyst/).fill("Retain this draft question");
   const calls = state.calls();
   const logo = page.getByRole("banner").getByRole("link", { name: "Kestrel overview", exact: true });
@@ -54,13 +60,15 @@ test("header and footer logo navigate by keyboard and pointer without clearing d
   await expect(page.locator("#overview")).toBeFocused();
   await expect(page).toHaveURL(/#overview$/);
   await expect(page.locator("#property-heading")).toHaveText(state.p.address.value!);
-  await expect(page.getByRole("tabpanel").getByLabel(/^Annual rent/)).toHaveValue("14.25");
+  // Other stages stay mounted while hidden, so their drafts are still in the document.
+  await expect(page.locator('[role="tabpanel"]').getByLabel(/^Annual rent/)).toHaveValue("14.25");
   await expect(page.getByLabel(/Question for the analyst/)).toHaveValue("Retain this draft question");
-  await page.locator("#section-scenarios").scrollIntoViewIfNeeded();
+  await openStage(page, "Underwriting");
+  await expect(page.getByRole("tabpanel").getByLabel(/^Annual rent/)).toHaveValue("14.25");
   await logo.click();
   await expect(page.locator("#overview")).toBeFocused();
   await page.locator("footer").getByRole("link", { name: "Kestrel overview", exact: true }).click();
   await expect(page.locator("#overview")).toBeFocused();
   expect(state.calls()).toBe(calls);
-  await expect(page.getByRole("tabpanel").getByLabel(/^Annual rent/)).toHaveValue("14.25");
+  await expect(page.locator('[role="tabpanel"]').getByLabel(/^Annual rent/)).toHaveValue("14.25");
 });

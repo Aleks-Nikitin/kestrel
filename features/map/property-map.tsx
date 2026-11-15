@@ -24,10 +24,11 @@ function webglAvailable() {
   }
 }
 
+// MapLibre positions markers with an inline transform, so pins never transition or scale.
 const PIN =
-  "flex size-7 items-center justify-center rounded-full border-2 border-white bg-slate-700 text-[11px] font-bold text-white shadow-md outline-none focus-visible:ring-4 focus-visible:ring-sky-500/60";
+  "flex size-6 cursor-pointer items-center justify-center rounded-full border-2 border-white bg-ink-800 text-[0px] shadow-md outline-none hover:bg-rufous-600 focus-visible:ring-4 focus-visible:ring-rufous-400/70";
 const PIN_SELECTED =
-  "flex size-9 items-center justify-center rounded-full border-2 border-white bg-sky-700 text-[11px] font-bold text-white shadow-lg ring-4 ring-sky-500/50 outline-none focus-visible:ring-sky-500";
+  "flex size-8 cursor-pointer items-center justify-center rounded-full border-[3px] border-white bg-rufous-600 text-[0px] shadow-lg ring-4 ring-rufous-500/35 outline-none focus-visible:ring-rufous-400";
 
 /**
  * Client-only MapLibre map. Markers are real buttons, so clicking and keyboard
@@ -40,6 +41,7 @@ export function PropertyMap({
   onSelect,
   footprint,
   styleUrl = process.env.NEXT_PUBLIC_MAP_STYLE_URL,
+  frameClassName = "h-80 sm:h-[26rem] lg:h-[30rem]",
 }: {
   properties: PropertySummaryDTO[];
   selectedId: string | null;
@@ -47,6 +49,8 @@ export function PropertyMap({
   /** Matched, verified footprint of the selected property only; otherwise null. */
   footprint: Footprint | null;
   styleUrl?: string;
+  /** Height classes for the map frame; the stage decides how much room it gets. */
+  frameClassName?: string;
 }) {
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -166,13 +170,13 @@ export function PropertyMap({
       id: "footprint-fill",
       type: "fill",
       source: "footprint",
-      paint: { "fill-color": "#0369a1", "fill-opacity": 0.25 },
+      paint: { "fill-color": "#c05a2a", "fill-opacity": 0.22 },
     });
     map.addLayer({
       id: "footprint-line",
       type: "line",
       source: "footprint",
-      paint: { "line-color": "#0369a1", "line-width": 2 },
+      paint: { "line-color": "#a6481f", "line-width": 2 },
     });
   }, [engine, styleLoaded, footprint]);
 
@@ -185,7 +189,7 @@ export function PropertyMap({
         <div
           role="alert"
           data-testid="map-unavailable"
-          className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950"
+          className="rounded-xl border border-ochre-300 bg-ochre-50 p-4 text-sm text-ochre-800"
         >
           <p className="font-semibold">The map can&apos;t be shown in this browser.</p>
           <p className="mt-1">
@@ -198,7 +202,7 @@ export function PropertyMap({
           role="region"
           aria-label="Map of properties. The property list offers the same selection."
           data-testid="property-map"
-          className="relative h-80 overflow-hidden rounded-2xl border border-slate-200 bg-slate-200 shadow-sm sm:h-[26rem] lg:h-[32rem]"
+          className={"relative overflow-hidden rounded-xl border border-ink-200 bg-ink-100 " + frameClassName}
         >
           {/* MapLibre's unlayered CSS sets .maplibregl-map to position:relative,
               which beats Tailwind's layered `absolute inset-0` and collapses the
@@ -211,14 +215,14 @@ export function PropertyMap({
           {engine === "loading" ? (
             <p
               role="status"
-              className="absolute inset-0 grid place-items-center text-sm text-slate-700"
+              className="absolute inset-0 grid place-items-center text-sm text-ink-600"
             >
               Loading map…
             </p>
           ) : null}
         </div>
       )}
-      <div className="mt-2 space-y-1 text-xs text-slate-700">
+      <div className="mt-2 space-y-0.5 text-xs text-ink-500">
         {engine !== "unsupported" && !resolved ? (
           <p data-testid="no-basemap">
             No approved basemap is configured, so locations are shown on a plain
@@ -226,7 +230,7 @@ export function PropertyMap({
           </p>
         ) : null}
         {mapError ? (
-          <p role="status" data-testid="map-error" className="text-amber-900">
+          <p role="status" data-testid="map-error" className="text-ochre-700">
             Map notice: {mapError}
           </p>
         ) : null}
