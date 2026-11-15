@@ -1,0 +1,28 @@
+import { describe, expect, it, vi } from "vitest";
+vi.mock("server-only", () => ({}));
+import { ToolMessage, AIMessage } from "@langchain/core/messages";
+import { Command } from "@langchain/langgraph";
+import { verifyAnalysisSubmission, contextIssue, successfulToolResult, type VerificationContext, type AnalysisSubmissionDTO } from "@/lib/agent/verification";
+import { createComparisonService } from "@/lib/contracts/service";
+import { f01, property, spatial } from "../fixtures/contracts";
+async function context(input = structuredClone(f01)): Promise<VerificationContext> {
+    const p = structuredClone(property), s = structuredClone(spatial);
+    const comparison = await createComparisonService({ property: { async listProperties() { return [p]; }, async getProperty() { return p; } }, spatial: { async getSpatialContext() { return s; } } }).compare(input, AbortSignal.timeout(1000));
+    return { property: p, spatial: s, request: input, comparison };
+}
+export function submission(c: VerificationContext): AnalysisSubmissionDTO { return { propertyId: c.property.id, inputRevision: c.request.inputRevision, preferredScenarioId: c.comparison.comparison.preferredScenarioId, financialClaims: [{ scenarioId: "alternative-b", metric: "noi", value: c.comparison.comparison.results.find(r => r.scenarioId === "alternative-b")!.noi.value, unit: "USD/year" }], propertyClaims: [], spatialClaims: [], riskCodes: [] }; }
+describe("deterministic bound-claim verification", () => {
+    it("accepts a canonical metric and its actual recommendation", async () => { const c = await context(); expect(verifyAnalysisSubmission(submission(c), c).valid).toBe(true); });
+    it("rejects a financial claim inconsistent with the finance tool", async () => { const c = await context(), s = submission(c); s.financialClaims[0].value = "999999"; expect(verifyAnalysisSubmission(s, c).issues.some(i => i.code === "FINANCIAL_CLAIM_MISMATCH")).toBe(true); });
+    it("rejects a recommendation that violates the explicit budget", async () => { const input = structuredClone(f01); input.constraints.maxInitialInvestment.value = "350000"; const c = await context(input), s = submission(c); s.preferredScenarioId = "alternative-b"; expect(verifyAnalysisSubmission(s, c).issues.some(i => i.code === "RECOMMENDATION_MISMATCH")).toBe(true); });
+    it("independently rejects a forged canonical policy result", async () => { const input = structuredClone(f01); input.constraints.maxInitialInvestment.value = "350000"; const c = await context(input); c.comparison.comparison.preferredScenarioId = "alternative-b"; const r = verifyAnalysisSubmission(submission(c), c); expect(r.issues.some(i => i.code === "CANONICAL_POLICY_MISMATCH" && !i.correctable)).toBe(true); });
+    it("does not impute an unsupported Matterport dimension, including zero", async () => { const c = await context(); c.spatial.model!.rooms[0].height = null; const s = submission(c); s.spatialClaims = [{ roomId: "room-001", dimension: "height", value: "0", unit: "m", evidenceIds: ["synthetic-assumption"] }]; expect(verifyAnalysisSubmission(s, c).issues.some(i => i.code === "UNKNOWN_MEASUREMENT")).toBe(true); s.spatialClaims[0].value = null; expect(verifyAnalysisSubmission(s, c).valid).toBe(true); expect(c.spatial.model!.rooms[0].height).toBeNull(); });
+    it("rejects missing or unrelated evidence IDs", async () => { const c = await context(), s = submission(c); s.propertyClaims = [{ field: "rentableAreaSqft", value: "10000", unit: "sqft", evidenceIds: ["invented-evidence"] }]; expect(verifyAnalysisSubmission(s, c).issues.some(i => i.code === "EVIDENCE_NOT_SUPPORTED")).toBe(true); });
+    it("rejects mismatched or unverified spatial context before claim acceptance", async () => { const c = await context(); c.spatial.model!.commercialPropertyId = "another-property"; expect(contextIssue(c.property, c.spatial)?.correctable).toBe(false); c.spatial.model!.commercialPropertyId = c.property.id; c.spatial.match.status = "unmatched"; expect(verifyAnalysisSubmission(submission(c), c).valid).toBe(false); });
+    it("never treats an authorization failure or request identity mismatch as repairable", async () => { const c = await context(), s = submission(c); s.propertyId = "another-property"; expect(verifyAnalysisSubmission(s, c).issues.some(i => !i.correctable)).toBe(true); c.spatial.evidence[0].allowedUse.display = false; expect(contextIssue(c.property, c.spatial)?.correctable).toBe(false); });
+    it("reports only sanitized codes and paths, never the unsupported value", async () => { const c = await context(), s = submission(c); s.financialClaims[0].value = "123456789"; const errors = verifyAnalysisSubmission(s, c).issues; expect(JSON.stringify(errors)).not.toContain("123456789"); expect(errors[0]).toEqual({ code: "FINANCIAL_CLAIM_MISMATCH", path: "financialClaims.0", correctable: true }); });
+});
+describe("successful tool receipts, not invocation claims", () => {
+    it("excludes failed, wrong-ID and wrong-name tool results", () => { expect(successfulToolResult(new ToolMessage({ content: "failed", tool_call_id: "call", name: "runComparison", status: "error" }), "call", "runComparison")).toBe(false); expect(successfulToolResult(new AIMessage({ content: "I ran the tool" }), "call", "runComparison")).toBe(false); expect(successfulToolResult(new ToolMessage({ content: "ok", tool_call_id: "wrong", name: "runComparison" }), "call", "runComparison")).toBe(false); });
+    it("accepts an actual native planning Command receipt", () => { expect(successfulToolResult(new Command({ update: { messages: [new ToolMessage({ content: "planned", tool_call_id: "plan", name: "write_todos" })] } }), "plan", "write_todos")).toBe(true); });
+});
