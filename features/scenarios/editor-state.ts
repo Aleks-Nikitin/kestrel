@@ -11,7 +11,8 @@ export type EditorAction =
   | { type: "patch_scenario"; id: string; patch: Partial<ScenarioForm> }
   | { type: "patch_constraints"; patch: Partial<ConstraintsForm> }
   | { type: "add_alternative" }
-  | { type: "remove_alternative"; id: string };
+  | { type: "remove_alternative"; id: string }
+  | { type: "replace_model"; model: EditorModel };
 
 export function canAddAlternative(m: EditorModel) {
   return m.scenarios.length < MAX_SCENARIOS;
@@ -46,5 +47,7 @@ export function editorReducer(m: EditorModel, a: EditorAction): EditorModel {
     case "remove_alternative":
       if (!canRemoveAlternative(m, a.id)) return m;
       return { ...m, scenarios: m.scenarios.filter((s) => s.id !== a.id) };
+    case "replace_model":
+      return a.model;
   }
 }
