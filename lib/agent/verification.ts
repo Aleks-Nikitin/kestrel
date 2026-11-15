@@ -13,7 +13,7 @@ export const AnalysisSubmission = z.strictObject({
     inputRevision: z.number().int().nonnegative(),
     preferredScenarioId: Id.nullable(),
     financialClaims: z.array(z.strictObject({ scenarioId: Id, metric: MetricName, value: FinancialDecimal.nullable(), unit: Unit })).min(1).max(6),
-    propertyClaims: z.array(z.strictObject({ field: z.literal("rentableAreaSqft"), value: FinancialDecimal.nullable(), unit: z.literal("sqft"), evidenceIds: z.array(Id).min(1).max(10) })).max(2),
+    propertyClaims: z.array(z.strictObject({ field: z.enum(["rentableAreaSqft"]), value: FinancialDecimal.nullable(), unit: z.enum(["sqft"]), evidenceIds: z.array(Id).min(1).max(10) })).max(2),
     spatialClaims: z.array(z.strictObject({ roomId: Id, dimension: z.enum(["width", "depth", "height", "floorArea"]), value: FinancialDecimal.nullable(), unit: z.enum(["m", "m2"]), evidenceIds: z.array(Id).min(1).max(10) })).max(3),
     riskCodes: z.array(Id).max(3),
 });

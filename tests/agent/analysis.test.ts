@@ -5,6 +5,7 @@ import { AnalysisResponse, type AnalysisRequestDTO } from "@/lib/contracts";
 import { createComparisonService } from "@/lib/contracts/service";
 import { readAgentConfig } from "@/lib/agent/config";
 import { runPropertyAnalysis } from "@/lib/agent/analysis";
+import { verificationCall } from "../fixtures/verification";
 import { f01, property, spatial } from "../fixtures/contracts";
 const request: AnalysisRequestDTO = { ...f01, action: "analyze" };
 const config = readAgentConfig({ ANALYSIS_ENABLED: "true" });
@@ -46,6 +47,7 @@ function model() {
           id: "comparison",
         },
       ],
+      verificationCall(property.id, f01.inputRevision),
       [
         {
           name: "write_todos",
@@ -88,6 +90,7 @@ describe("bounded native property analysis", () => {
       "getPropertyContext",
       "proposeScenarios",
       "runComparison",
+      "verifyAnalysis",
       "write_todos",
     ]);
     expect(
@@ -97,7 +100,8 @@ describe("bounded native property analysis", () => {
     expect(response.summary.preferredScenarioId).toBe(
       response.comparison.preferredScenarioId,
     );
-    expect(response.modelUsage.attempts).toBe(6);
+    expect(response.modelUsage.attempts).toBe(7);
+    expect(response.execution.verification?.correctionAttempts).toBe(0);
     expect(response.execution.dataMode).toBe("synthetic");
   });
   it("preserves a baseline draft and explicit unknowns as needs_input without invoking a model", async () => {

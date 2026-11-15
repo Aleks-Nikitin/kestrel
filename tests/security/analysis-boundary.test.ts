@@ -5,15 +5,17 @@ import { runPropertyAnalysis } from "@/lib/agent/analysis";
 import { readAgentConfig } from "@/lib/agent/config";
 import { createComparisonService } from "@/lib/contracts/service";
 import { failure } from "@/lib/api/http";
+import { verificationCall } from "../fixtures/verification";
 import { f01,property,spatial } from "../fixtures/contracts";
 import type { AnalysisRequestDTO } from "@/lib/contracts";
 const request:AnalysisRequestDTO={...f01,action:"analyze"};
 function service(p=property){return createComparisonService({property:{async listProperties(){return [p]},async getProperty(){return p}},spatial:{async getSpatialContext(){return spatial}}});}
-function calls(input=request):{name:string;args:Record<string,unknown>;id:string}[][]{return [
+function calls(input=request, preferred="alternative-b"):{name:string;args:Record<string,unknown>;id:string}[][]{return [
  [{name:"write_todos",args:{todos:[{content:"Review submitted inputs",status:"in_progress"}]},id:"plan"}],
  [{name:"getPropertyContext",args:{propertyId:input.propertyId},id:"context"}],
  [{name:"proposeScenarios",args:{scenarioIds:input.scenarios.map(s=>s.id)},id:"propose"}],
  [{name:"runComparison",args:{propertyId:input.propertyId,inputRevision:input.inputRevision},id:"compare"}],
+ verificationCall(input.propertyId,input.inputRevision,preferred),
  [],
 ];}
 class CapturingModel extends FakeToolCallingModel {
@@ -25,8 +27,8 @@ const config=readAgentConfig({ANALYSIS_ENABLED:"true"});
 describe("request isolation and untrusted property analysis boundary",()=>{
  it("isolates concurrent scenario revisions and canonical results",async()=>{
   const changed=structuredClone(request);changed.inputRevision=22;changed.scenarios[1].annualRentPerSqft.value="42";
-  const run=(input:AnalysisRequestDTO)=>runPropertyAnalysis({request:input,config,service:service(),signal:AbortSignal.timeout(10000),models:{primary:new CapturingModel({toolCalls:calls(input)})}});
-  const [a,b]=await Promise.all([run(request),run(changed)]);
+  const run=(input:AnalysisRequestDTO,preferred:string)=>runPropertyAnalysis({request:input,config,service:service(),signal:AbortSignal.timeout(10000),models:{primary:new CapturingModel({toolCalls:calls(input,preferred)})}});
+  const [a,b]=await Promise.all([run(request,"alternative-b"),run(changed,"alternative-a")]);
   expect(a.status).toBe("complete");expect(b.status).toBe("complete");
   if(a.status!=="complete"||b.status!=="complete")throw Error("Incomplete isolation check");
   expect(a.inputRevision).toBe(1);expect(b.inputRevision).toBe(22);

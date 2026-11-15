@@ -2,6 +2,7 @@ import {describe,expect,it,vi} from "vitest";
 vi.mock("server-only",()=>({}));
 import {FakeToolCallingModel} from "langchain";
 import {buildRequest} from "@/features/scenarios/model";
+import {verificationCall} from "../fixtures/verification";
 import {recordingModel} from "../fixtures/recording";
 import {property,spatial} from "../fixtures/contracts";
 import {createComparisonService} from "@/lib/contracts/service";
@@ -49,7 +50,7 @@ describe("actual scenario-editor financial payload and analysis path",()=>{
    [{name:"write_todos",args:{todos:[{content:"Review disclosed inputs",status:"in_progress"}]},id:"plan"}],
    [{name:"getPropertyContext",args:{propertyId:input.propertyId},id:"context"}],
    [{name:"proposeScenarios",args:{scenarioIds:input.scenarios.map(s=>s.id)},id:"scenarios"}],
-   [{name:"runComparison",args:{propertyId:input.propertyId,inputRevision:input.inputRevision},id:"comparison"}],[],
+   [{name:"runComparison",args:{propertyId:input.propertyId,inputRevision:input.inputRevision},id:"comparison"}],verificationCall(input.propertyId,input.inputRevision,"alternative-b","105380"),[],
   ]});
   const result=await runPropertyAnalysis({request:{...input,action:"analyze"},service,config,signal:AbortSignal.timeout(10000),models:{primary}});
   expect(result.status).toBe("complete");if(result.status!=="complete")throw Error("Incomplete fixture analysis");
