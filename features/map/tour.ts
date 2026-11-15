@@ -52,7 +52,9 @@ export function resolveTour(
   spatial: Load<SpatialContextDTO>,
   selectedId: string | null,
   sidOf: (s: SpatialContextDTO) => string | null = showcaseSidOf,
-  startOf: (s: SpatialContextDTO) => StartView | null = startViewOf,
+  // Default: Matterport's own start. A configured share-to-location view rendered as an angled,
+  // cropped scene in the real browser check, so it is applied only when a caller opts in.
+  startOf: (s: SpatialContextDTO) => StartView | null = () => null,
 ): TourState {
   if (!selectedId) return { status: "unavailable", reason: "Select a property first." };
   if (spatial.status === "idle" || spatial.status === "loading") return { status: "checking" };

@@ -144,6 +144,9 @@ describe("optional start view", () => {
       model: { ...spatial.model!, id: SID, showcase: { sid: SID, verifiedAt: "2026-11-14T18:00:00Z", startView: { ss: "34", sr: ",-1.04" } } },
     });
     const t = resolveTour(ready(published), propertyId);
-    expect(t).toMatchObject({ status: "available", url: expect.stringContaining("&ss=34&sr=,-1.04") });
+    expect(t).toMatchObject({ status: "available", url: `https://my.matterport.com/show/?m=${SID}&play=1` });
+    expect(resolveTour(ready(published), propertyId, undefined, startViewOf)).toMatchObject({
+      url: expect.stringContaining("&ss=34&sr=,-1.04"),
+    });
   });
 });
