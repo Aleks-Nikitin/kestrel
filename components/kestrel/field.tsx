@@ -20,7 +20,7 @@ interface Common {
 /** Marks an input the deterministic engine needs before it can recommend. */
 function NeededPill({ show }: { show: boolean }) {
   return show ? (
-    <span className="ml-1.5 rounded bg-amber-100 px-1.5 py-0.5 align-middle text-[10px] font-semibold uppercase tracking-wide text-amber-900">
+    <span aria-hidden="true" className="ml-1.5 rounded bg-amber-100 px-1.5 py-0.5 align-middle text-[10px] font-semibold uppercase tracking-wide text-amber-900">
       Needed
     </span>
   ) : null;

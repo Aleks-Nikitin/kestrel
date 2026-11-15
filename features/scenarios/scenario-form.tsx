@@ -344,6 +344,7 @@ export function ScenarioFormView({
           rows={2}
           value={s.totalProjectCostNote ?? ""}
           onChange={(value) => onPatch({ totalProjectCostNote: value })}
+          needed={need("totalProjectCostNote")}
           hint="Needed only when calculating yield on cost. State the existing-property or acquisition basis, included upfront costs, and exclusions. Do not describe an assumed basis as a valuation."
         />
       </Group>

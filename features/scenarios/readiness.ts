@@ -57,10 +57,12 @@ export function scenarioNeeds(s: ScenarioForm, constraints: ConstraintsForm): Ne
       if (blank(s.capex[c].text))
         need(
           `capex.${c}`,
-          `Enter ${CAPEX_LABEL[c].toLowerCase()} cost; enter 0 only if none. Initial investment, payback and incremental NOI need every capital line.`,
+          `Enter ${CAPEX_LABEL[c].toLowerCase()} cost; enter 0 only if none. Initial investment, payback and investment eligibility need every capital line.`,
         );
   if (!blank(constraints.minimumYieldOnCost.text) && blank(s.totalProjectCost.text))
     need("totalProjectCost", "The minimum yield on cost constraint needs a total project cost that includes the investment.");
+  else if (!blank(constraints.minimumYieldOnCost.text) && blank(s.totalProjectCostNote))
+    need("totalProjectCostNote", "Disclose what the total project cost includes; yield on cost requires its cost basis.");
   return out;
 }
 

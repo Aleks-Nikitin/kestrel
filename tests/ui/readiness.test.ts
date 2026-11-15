@@ -58,6 +58,14 @@ describe("recommendation readiness", () => {
     expect(constraintsNeed({ ...m.constraints, maxPaybackYears: d("10") })).toBeNull();
     expect(readiness(m).constraints).not.toBeNull();
   });
+  it("requires the existing cost-basis note when a yield constraint is supplied", () => {
+    const m = model();
+    const scenario = { ...complete(m.scenarios[1]), totalProjectCost: d("1000000") };
+    const constraints = { ...m.constraints, minimumYieldOnCost: d("0.05") };
+    expect(scenarioNeeds(scenario, constraints).totalProjectCostNote).toMatch(/cost basis/);
+    expect(scenarioNeeds({ ...scenario, totalProjectCostNote: "Disclosed hypothetical existing basis plus capex." }, constraints)).toEqual({});
+    expect(scenario.totalProjectCostNote).toBe("");
+  });
   it("totals across scenarios and constraints", () => {
     const m = model();
     const r = readiness(m);
