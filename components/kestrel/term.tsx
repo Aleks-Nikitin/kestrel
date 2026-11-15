@@ -88,7 +88,6 @@ export function Term({ id, children }: { id: string; children: ReactNode }) {
         type="button"
         aria-expanded={open}
         aria-controls={noteId}
-        aria-label={`${entry.title}: what this means`}
         onClick={() => setOpen((v) => !v)}
         onBlur={() => setOpen(false)}
         onKeyDown={(e) => {

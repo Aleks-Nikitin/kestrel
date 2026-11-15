@@ -12,3 +12,10 @@ export async function openStage(page: Page, stage: Stage) {
   await link.click();
   await expect(link).toHaveAttribute("aria-current", "step");
 }
+
+/** Switches the Underwriting view. Both views edit the same drafts. */
+export async function useUnderwritingMode(page: Page, mode: "Quick Analysis" | "Advanced Underwriting") {
+  const group = page.getByRole("group", { name: "Underwriting view" });
+  await group.getByText(mode, { exact: true }).click();
+  await expect(group.getByRole("radio", { name: mode })).toBeChecked();
+}

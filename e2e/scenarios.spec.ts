@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { CatalogResponse, ComparisonRequest } from "@/lib/contracts";
 import { answeringRevision } from "./helpers/revision";
 import { prepareValidScenarios } from "./helpers/scenario";
-import { openStage } from "./helpers/stage";
+import { openStage, useUnderwritingMode } from "./helpers/stage";
 import { comparison, errors, property, propertyId, spatial, success } from "../tests/fixtures/contracts";
 
 // Synthetic fixtures injected at the network boundary only; the compare route
@@ -95,6 +95,7 @@ test("typed decimals are sent exactly as entered", async ({ page }) => {
 test("explicit 'no other income modeled' sends zero with a note", async ({ page }) => {
   const requests = await mock(page);
   await openEditor(page);
+  await useUnderwritingMode(page, "Advanced Underwriting");
   await page.getByRole("tab", { name: /Alternative A/ }).click();
   await page.getByLabel(/No other income modeled/).check();
   await page.getByRole("button", { name: "Calculate comparison" }).click();
@@ -119,6 +120,7 @@ test("editing after a result marks it stale", async ({ page }) => {
 test("alternatives can be added but never fewer than two", async ({ page }) => {
   await mock(page);
   await openEditor(page);
+  await useUnderwritingMode(page, "Advanced Underwriting");
   await page.getByRole("button", { name: "Add alternative" }).click();
   await expect(page.getByRole("tab", { name: /Alternative C/ })).toBeVisible();
   await page.getByRole("tab", { name: /Alternative C/ }).click();
