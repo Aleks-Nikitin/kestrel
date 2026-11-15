@@ -12,10 +12,9 @@ it("selects every approved real property, preserves its spatial identity and cle
     if (!catalog.ok) throw Error("Catalog unavailable");
     expect(catalog.data.properties.length === 5).toBe(true);
     const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
-    let analysisRequests = 0;
-    page.on("request", r => { if (r.url().endsWith("/api/v1/analysis")) analysisRequests++; });
+    let analysisRequests = 0, compareRequests = 0;
+    page.on("request", r => { if (r.url().endsWith("/api/v1/analysis")) analysisRequests++; if (r.url().endsWith("/api/v1/scenarios/compare")) compareRequests++; });
     await page.goto(base);
-    const startLabel = (s: string) => new RegExp("^" + Array.from(s, c => /[A-Za-z0-9 ]/.test(c) ? c : "\\" + c).join(""));
     let published = 0;
     for (const item of catalog.data.properties) {
       ordinal++; stage = "selection";
@@ -40,7 +39,34 @@ it("selects every approved real property, preserves its spatial identity and cle
         await browserExpect(page.getByRole("radio", { name: "3D Tour", exact: true })).toBeEnabled();
         await page.getByRole("radio", { name: "3D Tour", exact: true }).locator("..").click();
         const iframe = page.locator("iframe").first(); await browserExpect(iframe).toBeVisible();
-        expect(new URL((await iframe.getAttribute("src"))!).searchParams.get("m") === spatial.data.model.id).toBe(true);
+        const url = new URL((await iframe.getAttribute("src"))!);
+        expect(url.searchParams.get("m") === spatial.data.model.id).toBe(true);
+        expect(!url.searchParams.has("sr") && !url.searchParams.has("ss")).toBe(true);
+        await iframe.scrollIntoViewIfNeeded(); await iframe.hover();
+        const scene = page.frameLocator("iframe").first();
+        stage = "embedded-canvas";
+        await scene.locator("canvas").first().waitFor({ state: "visible", timeout: 45000 });
+        const dollhouse = scene.locator('[aria-label*="Dollhouse"]:visible,[title*="Dollhouse"]:visible,[aria-label*="dollhouse"]:visible,[title*="dollhouse"]:visible').first();
+        stage = "embedded-dollhouse";
+        await dollhouse.waitFor({ state: "visible", timeout: 45000 });
+        if (ordinal === 1 && process.env.KESTREL_PRIVATE_VISUAL_CHECK === "true")
+          await iframe.screenshot({ path: "/private/tmp/kestrel-catalog-upright.png" });
+        await dollhouse.click();
+        const full = page.getByRole("button", { name: "Full screen", exact: true });
+        if (await full.isVisible()) {
+          stage = "fullscreen-enter";
+          await full.click();
+          await browserExpect(page.getByRole("button", { name: "Exit full screen", exact: true })).toBeVisible();
+          expect(await page.evaluate(() => document.fullscreenElement !== null)).toBe(true);
+          stage = "fullscreen-exit";
+          await page.getByRole("button", { name: "Exit full screen", exact: true }).click();
+        }
+        stage = "mobile-viewer";
+        await page.setViewportSize({ width: 390, height: 844 });
+        const size = await iframe.boundingBox();
+        expect(!!size && size.width <= 390 && size.height >= 320).toBe(true);
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+        await page.setViewportSize({ width: 1440, height: 1000 });
         published++;
         await page.getByRole("radio", { name: "2D Map", exact: true }).locator("..").click();
       } else {
@@ -52,23 +78,15 @@ it("selects every approved real property, preserves its spatial identity and cle
       stage = "editor";
       const example = createIllustrativeInvestmentExample(property.data, 2026);
       if (!example.ok) throw Error("Complete illustrative inputs unavailable");
-      const model = example.model;
-      for (let i = 0; i < 3; i++) {
-        await tabs.nth(i).click(); const panel = page.getByRole("tabpanel"), s = model.scenarios[i];
-        await panel.getByLabel(/^Name/).fill(s.name); await panel.getByLabel(/^Proposed use/).fill(s.proposedUse);
-        await panel.getByLabel(/^Lease basis/).selectOption("gross");
-        await panel.getByLabel(/^Rent normalization note/).fill(s.rentNormalizationNote);
-        for (const [label, key] of Object.entries({ "Rentable area": "rentableAreaSqft", "Annual rent": "annualRentPerSqft", "Occupancy": "occupancyRatio", "Collection loss": "collectionLossRatio", "Concessions": "annualConcessions", "Total operating expenses": "expenseTotal", "Total project cost (optional)": "totalProjectCost" }) as [string, keyof typeof s][]) {
-          const value = s[key] as { text: string }; await panel.getByLabel(startLabel(label)).fill(value.text);
-        }
-        await panel.getByRole("radio", { name: "No other income modeled", exact: true }).check();
-        await panel.getByLabel(/^Costs included in the total/).fill(s.expenseTotalNote);
-        await panel.getByLabel(/^Total project cost basis/).fill(s.totalProjectCostNote);
-        if (i) for (const [label, key] of Object.entries({ Renovation: "renovation", Conversion: "conversion", "Soft costs": "softCosts", Contingency: "contingency", "Other capital": "other" }) as [string, keyof typeof s.capex][]) await panel.getByLabel(startLabel(label)).fill(s.capex[key].text);
-        await panel.getByLabel(/^Assumptions/).fill(s.assumptions);
-      }
-      await page.getByLabel(/^Maximum initial investment/).fill("2000000");
-      await page.getByLabel(/^Maximum simple payback/).fill("10");
+      const callsBefore = compareRequests;
+      const revisionBadge = page.locator("#section-scenarios").getByText(/^Input revision/).first();
+      const beforeRevision = Number((await revisionBadge.textContent())?.match(/\d+/)?.[0]);
+      await page.getByRole("button", { name: "Load illustrative investment example", exact: true }).click();
+      await browserExpect(page.getByTestId("illustrative-confirm")).toHaveCount(0);
+      await browserExpect(revisionBadge).toHaveText(`Input revision ${beforeRevision + 1}`);
+      await browserExpect(page.getByTestId("illustrative-disclosure")).toContainText("hypothetical");
+      await browserExpect(page.getByLabel(/^Maximum initial investment/)).toHaveValue("2000000");
+      expect(compareRequests === callsBefore && analysisRequests === 0).toBe(true);
       stage = "comparison";
       const pending = page.waitForResponse(r => r.url().endsWith("/api/v1/scenarios/compare") && r.request().method() === "POST");
       await page.getByRole("button", { name: "Calculate comparison", exact: true }).click();
@@ -78,15 +96,26 @@ it("selects every approved real property, preserves its spatial identity and cle
       if (ordinal === 1) {
         expect(body.data.comparison.preferredScenarioId === "alternative-b").toBe(true);
         await page.getByLabel(/^Maximum initial investment/).fill("1000000");
+        await page.getByRole("button", { name: "Load illustrative investment example", exact: true }).click();
+        await browserExpect(page.getByTestId("illustrative-confirm")).toBeVisible();
+        await page.getByRole("button", { name: "Keep my drafts", exact: true }).click();
+        await browserExpect(page.getByLabel(/^Maximum initial investment/)).toHaveValue("1000000");
         const changed = page.waitForResponse(r => r.url().endsWith("/api/v1/scenarios/compare") && r.request().method() === "POST");
         await page.getByRole("button", { name: "Recalculate", exact: true }).click();
         const revised = await (await changed).json();
         expect(revised.ok && revised.data.propertyId === item.id && revised.data.comparison.preferredScenarioId === "alternative-a").toBe(true);
+        await page.getByRole("button", { name: "Load illustrative investment example", exact: true }).click();
+        await page.getByRole("button", { name: "Replace drafts", exact: true }).click();
+        await browserExpect(page.getByLabel(/^Maximum initial investment/)).toHaveValue("2000000");
+        await browserExpect(page.getByTestId("comparison-result")).toHaveAttribute("data-stale", "true");
+        const again = page.waitForResponse(r => r.url().endsWith("/api/v1/scenarios/compare") && r.request().method() === "POST");
+        await page.getByRole("button", { name: "Recalculate", exact: true }).click();
+        const reset = await (await again).json(); expect(reset.ok && reset.data.comparison.preferredScenarioId === "alternative-b").toBe(true);
         // Switch away while the original tour is open: an unpublished next
         // property must remove that iframe rather than retain the old building.
         await page.getByRole("radio", { name: "3D Tour", exact: true }).locator("..").click();
       }
-      console.info("Real catalog property passed", { ordinal, selectedRecord: true, explicitSpatialIdentity: true, availableMeasurements: hasScan, matchingTourOnly: true, priorStateCleared: true, comparisonCurrentProperty: true });
+      console.info("Real catalog property passed", { ordinal, selectedRecord: true, explicitSpatialIdentity: true, availableMeasurements: hasScan, matchingTourOnly: true, priorStateCleared: true, illustrativeButton: true, oneRevisionBump: true, comparisonCurrentProperty: true });
     }
     stage = "switch-back";
     await page.getByRole("list", { name: "Properties" }).getByRole("button").first().click();
