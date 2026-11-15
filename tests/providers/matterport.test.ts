@@ -203,11 +203,12 @@ describe("explicit cross-layer spatial evidence", () => {
     const make = (sid: string) => new MatterportSpatialProvider(
       new MatterportClient({ ...config, transport: transport({ data: { model } }) }),
       async () => [match],
-      { permissions, showcase: { sid, verifiedAt: "2026-11-14T21:30:00Z" } },
+      { permissions, showcase: { sid, verifiedAt: "2026-11-14T21:30:00Z", startView: { ss: "7", sr: "-3.05,.57" } } },
     );
     const signal = AbortSignal.timeout(2000);
     const spatial = await make(model.id).getSpatialContext({ property, signal });
     expect(spatial.model?.showcase?.sid).toBe(model.id);
+    expect(spatial.model?.showcase?.startView).toEqual({ ss: "7", sr: "-3.05,.57" });
     await expect(make("another-model").getSpatialContext({ property, signal })).rejects.toMatchObject({ code: "DATA_MISMATCH" });
   });
 

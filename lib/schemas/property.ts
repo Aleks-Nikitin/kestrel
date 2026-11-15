@@ -12,6 +12,16 @@ import {
   DataMode,
   datum,
 } from "./primitives";
+/** Server-approved hosted Showcase location; shape validation is not sweep verification. */
+export const ShowcaseStartView = z.strictObject({
+  ss: z.string().regex(/^\d{1,4}$/),
+  sr: z.string().regex(/^(-?(?:\d{1,3}(?:\.\d{1,4})?|\.\d{1,4}))?,(-?(?:\d{1,3}(?:\.\d{1,4})?|\.\d{1,4}))?$/).refine(value => value !== ",").optional(),
+});
+export const ShowcasePublication = z.strictObject({
+  sid: Id,
+  verifiedAt: Instant,
+  startView: ShowcaseStartView.optional(),
+});
 const DocumentedConstraint = z.strictObject({
   id: Id,
   dimension: z.enum(["legal", "physical"]),
@@ -171,9 +181,7 @@ export const SpatialContext = z
         conversionNote: Text,
         signedUrlExpiresAt: Instant.nullable(),
         // Present only after trusted server verification of Showcase publication.
-        showcase: z
-          .strictObject({ sid: Id, verifiedAt: Instant })
-          .optional(),
+        showcase: ShowcasePublication.optional(),
       })
       .nullable(),
     evidence: z.array(Evidence).max(200),

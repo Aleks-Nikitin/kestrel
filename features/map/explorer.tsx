@@ -164,8 +164,7 @@ export function Explorer({
       </div>
       {mode === "3d" && tour.status === "available" ? (
         <p className="text-xs text-slate-600" data-testid="tour-note">
-          Move through the tour with Matterport&apos;s own controls. The starting view is set by Matterport and
-          can&apos;t be changed from Kestrel.
+          Move through the tour with Matterport&apos;s own controls. The initial view follows the verified shared location when configured, otherwise Matterport&apos;s default.
         </p>
       ) : null}
     </div>

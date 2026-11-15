@@ -6,6 +6,7 @@ import {
   ComparisonResponse,
   Property,
   SpatialContext,
+  ShowcasePublication,
   apiResponse,
 } from "@/lib/contracts";
 import * as f from "../fixtures/contracts";
@@ -43,6 +44,12 @@ describe("shared synthetic contracts", () => {
     expect(AnalysisResponse.safeParse(verified).success).toBe(true);
     verified.execution.verification.correctionAttempts = 0;
     expect(AnalysisResponse.safeParse(verified).success).toBe(false);
+  });
+  it("accepts only strict bounded hosted-tour start parameters", () => {
+    const proof = { sid: "FictionalSID1", verifiedAt: "2026-11-14T18:00:00Z" };
+    expect(ShowcasePublication.safeParse({ ...proof, startView: { ss: "7", sr: "-3.05,.57" } }).success).toBe(true);
+    for (const startView of [{ ss: "7&token=x" }, { ss: "7", sr: "," }, { ss: "7", sr: "1;2" }, { ss: "7", arbitraryUrl: "https://example.com" }])
+      expect(ShowcasePublication.safeParse({ ...proof, startView }).success).toBe(false);
   });
   it("parses catalog layers and comparison states", () => {
     Property.parse(f.property);

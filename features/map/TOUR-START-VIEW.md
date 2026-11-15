@@ -11,21 +11,16 @@
   its load event.
 - The model id, SID source (`model.showcase.sid`) and matching rules are unchanged.
 
-## Optional starting view (needs a server-controlled contract change: Codex)
-The client already accepts a start view and appends it to the Showcase URL, but nothing supplies it yet.
-`features/map/tour.ts` reads `model.showcase.startView` and validates it:
+## Optional protected starting view
 
+`model.showcase.startView` is optional in the shared strict spatial contract:
+
+```ts
+startView?: { ss: string; sr?: string }
 ```
-startView?: { ss: string /* digits, 1–4 */, sr?: string /* "x,y" numbers, either may be empty */ }
-```
-Values are passed through exactly as verified for the model (Copilot verified `ss=34&sr=,-1.04` on a direct share
-link); Kestrel only checks their shape and never invents or hardcodes them.
 
-Request for Codex:
-1. Add the optional `startView` to `model.showcase` in `lib/schemas/property.ts` (the schema is a `strictObject`, so the
-   API client rejects an unknown key until the schema allows it).
-2. Supply it from protected/private configuration alongside the existing publication proof, keyed by the verified
-   model, never in public source.
-3. After the schema change, replace the untyped read in `startViewOf` with typed access (a one-line change).
+The protected `modelMapping.showcase` runtime configuration supplies it alongside the matching SID and dated publication proof. Only the existing verified property/model binding enables the viewer. The provider passes the configured values unchanged, and the client reads the typed response; it never hardcodes a sponsor model or derives a location from room dimensions.
 
-Until then the tour opens at Matterport's default start view.
+`ss` is a bounded numeric scan position. `sr` is a bounded comma-separated rotation pair, allowing either component to be empty. Invalid protected configuration is rejected. URL parameters select an initial location only; the standard hosted iframe remains unchanged. Without configuration, Matterport's default start is used. Schema acceptance alone does not verify that a sweep exists: check the selected model and view in a real browser before treating that location as verified.
+
+See Matterport's official [deep-link guidance](https://support.matterport.com/s/article/How-to-Connect-Two-or-More-Spaces-with-Mattertags-and-Deep-Links?language=en_US).

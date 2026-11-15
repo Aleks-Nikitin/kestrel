@@ -144,7 +144,7 @@ export class MatterportSpatialProvider implements SpatialProvider {
     ) => Promise<CommercialModelMatch[]>,
     private readonly options: {
       reviewedModelId?: string;
-      showcase?: {sid:string;verifiedAt:string};
+      showcase?: NonNullable<NonNullable<SpatialContextDTO["model"]>["showcase"]>;
       permissions: {
         display: boolean;
         modelProcessing: boolean;

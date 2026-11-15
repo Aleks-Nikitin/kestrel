@@ -3,6 +3,7 @@ import { extname } from "node:path";
 import { z } from "zod";
 import {
   Property,
+  ShowcasePublication,
   Id,
   type PropertyProvider,
   type SpatialProvider,
@@ -21,7 +22,7 @@ const ProtectedRecord = z.strictObject({
     propertyId: Id,
     modelId: Id,
     source: z.literal("commercial_property_mapping"),
-    showcase: z.strictObject({sid:Id,verifiedAt:z.iso.datetime()}).optional(),
+    showcase: ShowcasePublication.optional(),
   }),
 });
 export function createRuntimeProviders(): {
