@@ -30,9 +30,9 @@ function MetricCell({ metric }: { metric: Metric }) {
   if (metric.value === null)
     return (
       <span title={metric.unavailableReason ?? undefined}>
-        <span className="italic text-slate-600">Unavailable</span>
+        <span className="italic text-ink-600">Unavailable</span>
         {metric.unavailableReason ? (
-          <span className="block text-xs text-slate-600">
+          <span className="block text-xs text-ink-600">
             {metric.unavailableReason}
           </span>
         ) : null}
@@ -68,19 +68,13 @@ function ClaimList({
 }) {
   if (!claims.length) return null;
   return (
-    <div className="mt-3">
-      <h4 className="text-sm font-semibold text-slate-900">{title}</h4>
-      <ul className="mt-1 space-y-2 text-sm">
+    <div className="mt-5">
+      <h4 className="text-sm font-semibold text-ink-950">{title}</h4>
+      <ul className="mt-1 text-sm">
         {claims.map((c) => (
-          <li
-            key={c.text}
-            className={
-              "rounded-lg border bg-white p-3 " +
-              (c.kind === "fact" ? "border-l-4 border-slate-200 border-l-emerald-600" : "border-l-4 border-slate-200 border-l-amber-500")
-            }
-          >
-            <p className="text-slate-900">{c.text}</p>
-            <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-600">
+          <li key={c.text} className="border-t border-ink-100 py-3.5 first:border-t-0">
+            <p className="max-w-prose font-serif text-[1.08rem] leading-relaxed text-ink-950">{c.text}</p>
+            <p className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-ink-500">
               <ProvenanceChip kind={c.kind} />
               {[...new Set(c.evidenceIds.map((id) => evidence.get(id)?.provider).filter((p) => p !== undefined))].map((p) => (
                 <ProvenanceChip key={p} kind={providerKind(String(p))} />
@@ -89,19 +83,19 @@ function ClaimList({
               {c.metricRefs.length ? <span>Metrics: {c.metricRefs.join(", ")}</span> : null}
             </p>
             {c.evidenceIds.length ? (
-              <ul className="mt-1 text-xs text-slate-700" aria-label="Supporting evidence">
+              <ul className="mt-1.5 space-y-0.5 border-l-2 border-ink-200 pl-3 text-xs text-ink-600" aria-label="Supporting evidence">
                 {c.evidenceIds.map((id) => {
                   const e = evidence.get(id);
                   return (
                     <li key={id}>
                       {e ? e.label : id}
-                      {e?.synthetic ? <span className="ml-1 font-medium text-amber-800">(synthetic)</span> : null}
+                      {e?.synthetic ? <span className="ml-1 font-medium text-ochre-800">(synthetic)</span> : null}
                     </li>
                   );
                 })}
               </ul>
             ) : (
-              <p className="mt-1 text-xs text-amber-900">No supporting evidence cited.</p>
+              <p className="mt-1 text-xs text-ochre-800">No supporting evidence cited.</p>
             )}
           </li>
         ))}
@@ -122,7 +116,7 @@ export function AnalysisResult({
       <div className="space-y-3" data-testid="analysis-needs-input">
         <div
           role="status"
-          className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950"
+          className="rounded-lg border border-ochre-300 bg-ochre-50 p-4 text-sm text-ochre-800"
         >
           <p className="font-semibold">More input is needed before a recommendation</p>
           <p className="mt-1">
@@ -153,30 +147,30 @@ export function AnalysisResult({
       {stale ? (
         <div
           role="status"
-          className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950"
+          className="rounded-lg border border-ochre-300 bg-ochre-50 px-4 py-3 text-sm text-ochre-800"
         >
           <strong>Out of date.</strong> Inputs changed after this analysis ran.
           The explanation below is hidden until you run it again.
         </div>
       ) : null}
 
-      <div>
-        <p className="text-xs font-medium uppercase tracking-wide text-slate-600">
+      <div className="survey-grid rounded-xl bg-ink-900 px-5 py-5 text-white sm:px-8 sm:py-6 [&_li]:text-ink-100 [&_ul]:text-ink-100">
+        <p className="text-sm font-medium text-rufous-300">
           Comparison · input revision {comparison.inputRevision}
         </p>
-        <p className="mt-1 text-base font-semibold text-slate-900">
+        <p className="type-display mt-2 text-3xl text-buff-100 sm:text-4xl">
           {CONCLUSION_LABEL[comparison.conclusion]}
           {comparison.preferredScenarioId
             ? `: ${name(comparison.preferredScenarioId)}`
             : ""}
         </p>
-        <ul className="mt-2 space-y-1 text-sm text-slate-800">
+        <ul className="mt-3 max-w-prose space-y-1 font-serif text-[1.02rem] leading-relaxed">
           {comparison.reasons.map((r) => (
             <li key={r.code}>{r.text}</li>
           ))}
         </ul>
         {comparison.missingInputs.length ? (
-          <p className="mt-2 text-sm text-amber-900">
+          <p className="mt-2 text-sm text-ochre-300">
             Missing: {comparison.missingInputs.map((m) => describeMissing(m, name)).join("; ")}
           </p>
         ) : null}
@@ -185,34 +179,38 @@ export function AnalysisResult({
       {!stale ? <InvestigationPanel investigation={buildInvestigation(response)} /> : null}
 
       {!stale ? (
-        <div data-testid="investment-summary" className="space-y-3 rounded-2xl border border-slate-200 border-l-4 border-l-copper-600 bg-white p-4 shadow-sm sm:p-6">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Investment summary</p>
-            <p className="mt-1 font-display text-2xl leading-snug text-slate-900">{summary.headline}</p>
+        <div data-testid="investment-summary" className="rounded-xl border border-ink-200 bg-white px-5 py-6 sm:px-9 sm:py-9">
+          <div className="border-b-2 border-ink-900 pb-5">
+            <p className="text-sm font-medium text-rufous-700">Investment memo · analyst summary</p>
+            <p className="mt-2 max-w-3xl font-serif text-[2rem] leading-[1.15] text-ink-950 sm:text-[2.4rem]">{summary.headline}</p>
+            <p className="figure mt-3 text-xs text-ink-500">
+              Input revision {comparison.inputRevision} · {summary.claims.length} {summary.claims.length === 1 ? "claim" : "claims"} ·{" "}
+              {response.evidence.length} evidence {response.evidence.length === 1 ? "record" : "records"} returned
+            </p>
           </div>
-          <ProvenanceLegend />
+          <div className="mt-4"><ProvenanceLegend /></div>
           <ClaimList title="Established facts" claims={facts} evidence={evidenceById} />
           <ClaimList
             title="Assumptions and inferences (uncertain)"
             claims={uncertain}
             evidence={evidenceById}
           />
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-lg bg-amber-50 p-3 ring-1 ring-amber-600/20">
-              <h4 className="flex items-center gap-1.5 text-sm font-semibold text-amber-950">
-                <TriangleAlert className="size-4" aria-hidden /> Limitations
+          <div className="mt-6 grid gap-x-10 gap-y-5 border-t border-ink-200 pt-5 sm:grid-cols-2">
+            <div>
+              <h4 className="flex items-center gap-1.5 text-sm font-semibold text-ink-950">
+                <TriangleAlert className="size-4 text-ochre-600" aria-hidden /> Limitations and unresolved questions
               </h4>
-              <ul className="mt-1 list-disc pl-5 text-sm text-amber-950">
+              <ul className="mt-2 space-y-1.5 border-l-2 border-ochre-300 pl-3 text-sm leading-relaxed text-ink-800">
                 {summary.limitations.map((l) => (
                   <li key={l}>{l}</li>
                 ))}
               </ul>
             </div>
-            <div className="rounded-lg bg-sky-50 p-3 ring-1 ring-sky-600/20">
-              <h4 className="flex items-center gap-1.5 text-sm font-semibold text-sky-950">
-                <Lightbulb className="size-4" aria-hidden /> Next steps
+            <div>
+              <h4 className="flex items-center gap-1.5 text-sm font-semibold text-ink-950">
+                <Lightbulb className="size-4 text-ink-500" aria-hidden /> Next steps
               </h4>
-              <ol className="mt-1 list-decimal pl-5 text-sm text-sky-950">
+              <ol className="figure mt-2 list-decimal space-y-1.5 pl-5 text-sm leading-relaxed text-ink-800">
                 {summary.nextSteps.map((l) => (
                   <li key={l}>{l}</li>
                 ))}
@@ -226,14 +224,14 @@ export function AnalysisResult({
         role="region"
         aria-label="Scenario financial comparison"
         tabIndex={0}
-        className="overflow-x-auto rounded-md border border-slate-200 focus-visible:outline-2 focus-visible:outline-sky-600"
+        className="overflow-x-auto rounded-xl border border-ink-200 bg-white focus-visible:-outline-offset-2"
       >
         <table className="w-full min-w-[44rem] text-left text-sm">
           <caption className="sr-only">
             Annual stabilized USD results per scenario. Values are calculated by
             the server, not in the browser.
           </caption>
-          <thead className="bg-slate-50 text-xs text-slate-700">
+          <thead className="bg-ink-50 text-xs text-ink-700">
             <tr>
               <th scope="col" className="px-3 py-2">Scenario</th>
               {COLUMNS.map((c) => (
@@ -244,12 +242,12 @@ export function AnalysisResult({
               <th scope="col" className="px-3 py-2">Eligibility</th>
             </tr>
           </thead>
-          <tbody className="tabular-nums">
+          <tbody className="figure">
             {comparison.results.map((r) => {
               const f = feasibility.get(r.scenarioId);
               return (
-                <tr key={r.scenarioId} className="border-t border-slate-200 align-top">
-                  <th scope="row" className="px-3 py-2 font-medium text-slate-900">
+                <tr key={r.scenarioId} className="border-t border-ink-200 align-top">
+                  <th scope="row" className="px-3 py-2 font-medium text-ink-900">
                     {name(r.scenarioId)}
                     {r.scenarioId === comparison.preferredScenarioId ? (
                       <span className="ml-2"><Pill tone="blue">Preferred</Pill></span>
@@ -273,7 +271,7 @@ export function AnalysisResult({
           </tbody>
         </table>
       </div>
-      <p className="text-xs text-slate-600">
+      <p className="text-xs text-ink-600">
         Calculated values <OriginBadge origin="derived_calculation" /> are
         displayed exactly as returned; hover a value for its full precision and
         formula. Payback and yield on cost are shown only when their inputs are
@@ -281,7 +279,7 @@ export function AnalysisResult({
       </p>
 
       {comparison.results.some((r) => r.warnings.length) ? (
-        <ul className="list-disc pl-5 text-sm text-slate-800">
+        <ul className="list-disc pl-5 text-sm text-ink-800">
           {comparison.results.flatMap((r) =>
             r.warnings.map((w) => (
               <li key={`${r.scenarioId}-${w}`}>
@@ -292,7 +290,7 @@ export function AnalysisResult({
         </ul>
       ) : null}
 
-      <div className="rounded-md bg-slate-50 p-3 text-xs text-slate-700">
+      <div className="rounded-lg border border-ink-200 bg-white p-3 text-xs text-ink-600">
         <p className="flex flex-wrap items-center gap-2">
           <DataModeBadge mode={execution.dataMode} prefix="Run data" />
           <span>

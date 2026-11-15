@@ -5,9 +5,8 @@ import { Play } from "lucide-react";
 import type { AnalysisRequestDTO, ComparisonRequestDTO } from "@/lib/contracts";
 import type { Load } from "@/features/dashboard/state";
 import type { AnalysisResponseDTO } from "@/lib/contracts";
-import { Button } from "@/components/ui/button";
 import { DataModeBadge } from "@/components/kestrel/badges";
-import { ErrorPanel, LoadingPanel } from "@/components/kestrel/state-panels";
+import { ErrorPanel, LoadingPanel, buttonPrimary, buttonQuiet } from "@/components/kestrel/state-panels";
 import { goToStage } from "@/features/dashboard/stages";
 import { AnalysisResult } from "./analysis-result";
 import {
@@ -82,67 +81,71 @@ export function AnalysisPanel({
           />
         ) : null}
       </header>
-      <div className="rounded-xl border border-ink-200 bg-white p-4 sm:p-6">
-      <p className="text-xs text-ink-600">
-        Sends the scenarios and constraints from Underwriting, exactly as
-        entered, to the server. Calculations are deterministic; the agent only
-        explains them. Unknown values stay unknown.
-      </p>
-
-      <div role="group" aria-label="Analysis actions" className="mt-4 flex flex-wrap gap-2">
-        {ACTIONS.map((a) => {
-          const active = shownAction === a.id && analysis.status !== "idle";
-          return (
-            <Button
-              key={a.id}
-              type="button"
-              size="sm"
-              variant={a.id === "analyze" ? "default" : "outline"}
-              className={a.id === "analyze" ? "min-h-10 bg-copper-600 px-4 text-ivory hover:bg-copper-700" : "min-h-10"}
-              disabled={loading || !!blocks[a.id]}
-              aria-pressed={active}
-              title={a.hint}
-              onClick={() => run(a.id)}
-            >
-              {a.id === "analyze" ? <Play aria-hidden /> : null}
-              {a.label}
-            </Button>
-          );
-        })}
+      <div className="rounded-xl border border-ink-200 bg-white">
+        <div className="grid gap-x-8 gap-y-5 p-4 sm:p-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+          <div className="min-w-0">
+            <p className="font-serif text-xl leading-snug text-ink-950">
+              Ask the analyst to investigate the comparison and report back with its sources.
+            </p>
+            <p className="mt-2 max-w-prose text-[13px] leading-5 text-ink-600">
+              Sends the scenarios and constraints from Underwriting, exactly as
+              entered, to the server. Calculations are deterministic; the agent only
+              explains them. Unknown values stay unknown. Nothing runs until you choose an action.
+            </p>
+            <div role="group" aria-label="Analysis actions" className="mt-4 flex flex-wrap gap-2">
+              {ACTIONS.map((a) => {
+                const active = shownAction === a.id && analysis.status !== "idle";
+                return (
+                  <button
+                    key={a.id}
+                    type="button"
+                    className={a.id === "analyze" ? buttonPrimary : buttonQuiet + " min-h-10"}
+                    disabled={loading || !!blocks[a.id]}
+                    aria-pressed={active}
+                    title={a.hint}
+                    onClick={() => run(a.id)}
+                  >
+                    {a.id === "analyze" ? <Play className="size-4" aria-hidden /> : null}
+                    {a.label}
+                  </button>
+                );
+              })}
+            </div>
+            {allBlocked && firstBlock ? (
+              <p className="mt-2 text-xs text-ochre-700" data-testid="action-blocked">
+                {firstBlock}
+              </p>
+            ) : !loading && ACTIONS.some((a) => blocks[a.id]) ? (
+              <p className="mt-2 text-xs text-ochre-700" data-testid="action-blocked">
+                {ACTIONS.filter((a) => blocks[a.id])
+                  .map((a) => `${a.label}: ${blocks[a.id]}`)
+                  .join(" ")}
+              </p>
+            ) : null}
+          </div>
+          <div className="min-w-0">
+            <label htmlFor="analysis-question" className="text-sm font-medium text-ink-900">
+              Question for the analyst <span className="font-normal text-ink-500">(optional)</span>
+            </label>
+            <textarea
+              id="analysis-question"
+              rows={4}
+              value={question}
+              maxLength={QUESTION_MAX}
+              onChange={(e) => setQuestion(e.target.value)}
+              placeholder="For example: why does the preferred option beat the baseline?"
+              className="mt-1 block w-full rounded-md border border-ink-300 bg-white px-3 py-2 text-base leading-relaxed text-ink-950 placeholder:text-ink-400 hover:border-ink-500 focus-visible:outline-offset-0 sm:text-[15px]"
+            />
+            <p className="mt-1 text-xs text-ink-500">
+              Sent with whichever action you choose. Leave empty to use the actions alone.
+            </p>
+          </div>
+        </div>
       </div>
-      {allBlocked && firstBlock ? (
-        <p className="mt-2 text-xs text-amber-900" data-testid="action-blocked">
-          {firstBlock}
-        </p>
-      ) : !loading && ACTIONS.some((a) => blocks[a.id]) ? (
-        <p className="mt-2 text-xs text-amber-900" data-testid="action-blocked">
-          {ACTIONS.filter((a) => blocks[a.id])
-            .map((a) => `${a.label}: ${blocks[a.id]}`)
-            .join(" ")}
-        </p>
-      ) : null}
 
-      <div className="mt-3">
-        <label htmlFor="analysis-question" className="text-sm font-medium text-slate-800">
-          Question for the analyst <span className="font-normal text-slate-600">(optional)</span>
-        </label>
-        <textarea
-          id="analysis-question"
-          rows={2}
-          value={question}
-          maxLength={QUESTION_MAX}
-          onChange={(e) => setQuestion(e.target.value)}
-          placeholder="For example: why does the preferred option beat the baseline?"
-          className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-base text-slate-900 sm:text-sm focus-visible:outline-2 focus-visible:outline-sky-600"
-        />
-        <p className="mt-0.5 text-xs text-slate-600">
-          Sent with whichever action you choose. Leave empty to use the actions alone.
-        </p>
-      </div>
-
-      <div className="mt-4" aria-live="polite">
+      <div aria-live="polite">
         {analysis.status === "idle" ? (
-          <p className="text-sm text-slate-700">No analysis has been run yet.</p>
+          <p className="rounded-xl border border-dashed border-ink-300 bg-white p-8 text-center text-sm text-ink-600">No analysis has been run yet.</p>
         ) : null}
         {loading ? (
           <LoadingPanel
@@ -159,7 +162,7 @@ export function AnalysisPanel({
               onRetry={shownAction ? () => run(shownAction) : undefined}
             />
             {analysis.error.code === "ANALYSIS_UNAVAILABLE" ? (
-              <p className="text-sm text-slate-800" data-testid="ai-unavailable">
+              <p className="text-sm text-ink-800" data-testid="ai-unavailable">
                 The AI explanation is unavailable right now. The deterministic
                 comparison in the Comparison stage does not depend on it
                 and still works.
@@ -170,19 +173,18 @@ export function AnalysisPanel({
         {analysis.status === "ready" ? (
           <div className="space-y-3">
             {shownAction ? (
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-600">
+              <p className="text-xs font-medium uppercase tracking-wide text-ink-600">
                 Action: {ACTION_LABEL[shownAction]}
               </p>
             ) : null}
             <AnalysisResult response={analysis.data} stale={stale} />
             {analysis.data.status === "needs_input" ? (
-              <Button type="button" size="sm" variant="outline" onClick={editInputs}>
+              <button type="button" className={buttonQuiet} onClick={editInputs}>
                 Edit scenario inputs
-              </Button>
+              </button>
             ) : null}
           </div>
         ) : null}
-      </div>
       </div>
     </section>
   );
