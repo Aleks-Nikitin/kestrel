@@ -4,6 +4,7 @@ import { useCallback, useEffect, useReducer, useRef } from "react";
 import { Box, Calculator, ShieldCheck } from "lucide-react";
 import { KestrelMark } from "@/components/kestrel/kestrel-mark";
 import { SiteFooter } from "@/components/kestrel/site-footer";
+import { OverviewLink } from "@/components/kestrel/overview-link";
 import { Reveal } from "@/components/kestrel/motion";
 import { apiClient } from "@/lib/contracts/client";
 import { ErrorPanel, LoadingPanel } from "@/components/kestrel/state-panels";
@@ -222,13 +223,13 @@ export function Dashboard({ client = apiClient }: { client?: ApiClient }) {
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <header className="sticky top-0 z-40 border-b border-espresso-700 bg-espresso-950 text-ivory">
         <div className="mx-auto flex max-w-[90rem] flex-wrap items-center gap-x-6 gap-y-1 px-4 py-2 sm:px-6">
-          <div className="flex items-center gap-3">
+          <OverviewLink className="flex items-center gap-3 rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-copper-300">
             <KestrelMark tone="light" className="size-9 shrink-0" />
             <div className="leading-tight">
               <h1 className="text-[15px] font-semibold uppercase tracking-[0.3em]">Kestrel</h1>
               <p className="hidden text-xs text-ivory/65 sm:block">Commercial property intelligence</p>
             </div>
-          </div>
+          </OverviewLink>
           {navigable ? (
             <SectionNav
               available={[
@@ -242,12 +243,7 @@ export function Dashboard({ client = apiClient }: { client?: ApiClient }) {
           ) : null}
         </div>
       </header>
-      <p className="border-b border-slate-200 bg-slate-100 px-4 py-1.5 text-center text-xs text-slate-600">
-        Preliminary screening — not an appraisal, zoning determination or
-        structural inspection.
-      </p>
-
-      <main className="mx-auto max-w-[90rem] space-y-4 px-4 pb-12 pt-5 sm:px-6 sm:pb-16 sm:pt-8">
+      <main id="overview" tabIndex={-1} className="mx-auto max-w-[90rem] scroll-mt-28 space-y-4 px-4 pb-12 pt-5 outline-none sm:px-6 sm:pb-16 sm:pt-8">
         {synthetic ? <SyntheticBanner /> : null}
 
         <div className="grid gap-6 lg:grid-cols-[17rem_minmax(0,1fr)] xl:grid-cols-[18rem_minmax(0,1fr)]">

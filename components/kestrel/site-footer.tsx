@@ -2,6 +2,7 @@
 
 import type { MouseEvent } from "react";
 import { KestrelMark } from "./kestrel-mark";
+import { OverviewLink } from "./overview-link";
 
 /** Every link targets a section that already exists on the page; nothing is invented. */
 const LINKS = [
@@ -24,13 +25,13 @@ export function SiteFooter() {
   return (
     <footer className="mt-10 border-t border-espresso-700 bg-espresso-950 text-ivory">
       <div className="mx-auto grid max-w-[90rem] gap-8 px-4 py-8 sm:px-6 md:grid-cols-[1.1fr_1fr_1.3fr]">
-        <div className="flex items-start gap-3">
+        <OverviewLink className="flex items-start gap-3 rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-copper-400">
           <KestrelMark tone="light" className="size-10 shrink-0" />
           <div>
             <p className="font-semibold tracking-[0.28em]">KESTREL</p>
             <p className="mt-1 text-sm text-stone-300">Commercial Property Intelligence</p>
           </div>
-        </div>
+        </OverviewLink>
         <nav aria-label="Footer sections">
           <ul className="grid gap-1 text-sm">
             {LINKS.map((l) => (
@@ -55,6 +56,9 @@ export function SiteFooter() {
       </div>
       <div className="border-t border-espresso-700">
         <p className="mx-auto max-w-[90rem] px-4 py-3 text-xs text-stone-400 sm:px-6">Kestrel · HackPrinceton 2026</p>
+        <p className="mx-auto max-w-[90rem] px-4 pb-4 text-xs text-stone-400 sm:px-6">
+          Preliminary investment screening only. Not an appraisal, zoning determination or structural inspection.
+        </p>
       </div>
     </footer>
   );
