@@ -10,7 +10,7 @@ it("selects every approved real property, preserves its spatial identity and cle
   try {
     const catalog = apiResponse(CatalogResponse).parse(await (await fetch(base + "/api/v1/properties")).json());
     if (!catalog.ok) throw Error("Catalog unavailable");
-    expect(catalog.data.properties.length === 4).toBe(true);
+    expect(catalog.data.properties.length === 5).toBe(true);
     const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
     let analysisRequests = 0;
     page.on("request", r => { if (r.url().endsWith("/api/v1/analysis")) analysisRequests++; });
@@ -22,12 +22,15 @@ it("selects every approved real property, preserves its spatial identity and cle
       const property = apiResponse(Property).parse(await (await fetch(base + "/api/v1/properties/" + encodeURIComponent(item.id))).json());
       const spatial = apiResponse(SpatialContext).parse(await (await fetch(base + "/api/v1/properties/" + encodeURIComponent(item.id) + "/spatial")).json());
       if (!property.ok || !spatial.ok) throw Error("Authorized details unavailable");
-      expect(property.data.id === item.id && spatial.data.propertyId === item.id && spatial.data.match.status === "verified" && spatial.data.model?.commercialPropertyId === item.id).toBe(true);
+      expect(property.data.id === item.id && spatial.data.propertyId === item.id).toBe(true);
+      const hasScan = spatial.data.model !== null;
+      expect(hasScan ? spatial.data.match.status === "verified" && spatial.data.model?.commercialPropertyId === item.id : spatial.data.match.status === "unmatched" && spatial.data.dataMode === "unavailable").toBe(true);
       expect(spatial.data.evidence.every(e => e.propertyId === item.id)).toBe(true);
       await page.getByRole("list", { name: "Properties" }).getByRole("button").nth(ordinal - 1).click();
       await browserExpect(page.getByTestId("comparison-result")).toHaveCount(0);
       await browserExpect(page.getByTestId("analysis-complete")).toHaveCount(0);
-      await browserExpect(page.getByTestId("room-measurements")).toBeVisible();
+      if (hasScan) await browserExpect(page.getByTestId("room-measurements")).toBeVisible();
+      else await browserExpect(page.getByTestId("room-measurements")).toHaveCount(0);
       expect((await page.locator("#property-heading").textContent())?.trim() === property.data.address.value).toBe(true);
       const tabs = page.getByRole("tab"); await browserExpect(tabs.nth(2)).toBeVisible();
       await tabs.nth(1).click();
@@ -83,8 +86,14 @@ it("selects every approved real property, preserves its spatial identity and cle
         // property must remove that iframe rather than retain the old building.
         await page.getByRole("radio", { name: "3D Tour", exact: true }).locator("..").click();
       }
-      console.info("Real catalog property passed", { ordinal, selectedRecord: true, explicitSpatialIdentity: true, availableMeasurements: true, matchingTourOnly: true, priorStateCleared: true, comparisonCurrentProperty: true });
+      console.info("Real catalog property passed", { ordinal, selectedRecord: true, explicitSpatialIdentity: true, availableMeasurements: hasScan, matchingTourOnly: true, priorStateCleared: true, comparisonCurrentProperty: true });
     }
+    stage = "switch-back";
+    await page.getByRole("list", { name: "Properties" }).getByRole("button").first().click();
+    await browserExpect(page.getByTestId("comparison-result")).toHaveCount(0);
+    await browserExpect(page.getByTestId("room-measurements")).toBeVisible();
+    await page.getByRole("tab").nth(1).click();
+    await browserExpect(page.getByRole("tabpanel").getByLabel(/^Annual rent/)).toHaveValue("");
     expect(analysisRequests).toBe(0);
     console.info("Bounded real catalog verified", { properties: ordinal, publishedTours: published, paidAnalysisCalls: analysisRequests });
   } catch { throw Error(`Real multi-property check failed at ordinal ${ordinal}, stage ${stage}; restricted values withheld.`); }

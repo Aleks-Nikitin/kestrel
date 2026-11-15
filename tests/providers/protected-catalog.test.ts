@@ -33,7 +33,7 @@ describe("bounded protected property catalog", () => {
     const base = record("one", "ModelOne1", true);
     const wrong = record("two", "ModelTwo2", true); wrong.modelMapping.showcase!.sid = "ModelOne1";
     const wrongJoin = record("two", "ModelTwo2"); wrongJoin.modelMapping.propertyId = "one";
-    for (const extras of [[record("one", "ModelTwo2")], [record("two", "ModelOne1")], [wrong], [wrongJoin], Array.from({ length: 4 }, (_, i) => record(`extra-${i}`, `ExtraModel${i}`))])
+    for (const extras of [[record("one", "ModelTwo2")], [record("two", "ModelOne1")], [wrong], [wrongJoin], Array.from({ length: 5 }, (_, i) => record(`extra-${i}`, `ExtraModel${i}`))])
       expect(() => createProtectedCatalog(base, extras, auth, client().client)).toThrow();
   });
   it("retrieves only each selected property's own scan and never reuses publication metadata", async () => {
@@ -55,6 +55,15 @@ describe("bounded protected property catalog", () => {
     expect((await p.spatial.getSpatialContext({ property: one, signal: signal() })).model?.id).toBe("ModelOne1");
     const two = await p.property.getProperty({ propertyId: "two", signal: signal() });
     await expect(p.spatial.getSpatialContext({ property: two, signal: signal() })).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+  it("supports a real-property-only record without fabricating or fetching a scan", async () => {
+    const network = client(); const extra = { property: record("no-scan", "unused").property, modelMapping: null };
+    const p = createProtectedCatalog(record("one", "ModelOne1", true), [extra], auth, network.client);
+    const property = await p.property.getProperty({ propertyId: "no-scan", signal: signal() });
+    const spatial = await p.spatial.getSpatialContext({ property, signal: signal() });
+    expect(spatial.propertyId).toBe("no-scan"); expect(spatial.match.status).toBe("unmatched");
+    expect(spatial.model).toBeNull(); expect(spatial.observations).toEqual([]); expect(spatial.dataMode).toBe("unavailable");
+    expect(network.transport).not.toHaveBeenCalled();
   });
   it("keeps processing permission false and rejects unlisted spatial context", async () => {
     const p = createProtectedCatalog(record("one", "ModelOne1"), [], { ...auth, permissions: { ...permissions, modelProcessing: false } }, client().client);
