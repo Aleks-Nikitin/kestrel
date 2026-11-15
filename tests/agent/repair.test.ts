@@ -97,6 +97,20 @@ describe("one native bounded corrective submission", () => {
             expect(r.primary.calls).toBe(8);
         } finally { spatial.model!.rooms[0].height = original; }
     });
+    it("never exceeds eight physical calls when extra planning consumes the repair allowance", async () => {
+        const bad = draft(); bad.financialClaims[0].value = "999999";
+        const calls = script(f01, [bad, draft()]);
+        calls.splice(1, 0, [{ name: "write_todos", args: { todos: [{ content: "Confirm the same bounded plan", status: "in_progress" }] }, id: "extra-plan" }]);
+        const primary = new RecordingModel({ toolCalls: calls });
+        await expect(runPropertyAnalysis({ request: { ...f01, action: "analyze" }, config, service: service(), models: { primary }, signal: AbortSignal.timeout(10000) })).rejects.toMatchObject({ code: "ANALYSIS_UNAVAILABLE" });
+        expect(primary.calls).toBe(8);
+    });
+    it("does not offer repair when wrong identity is combined with malformed claims", async () => {
+        const r = await run([{ propertyId: "different-property", financialClaims: "invalid" }, draft()]);
+        await expect(r.pending).rejects.toMatchObject({ code: "ANALYSIS_UNAVAILABLE" });
+        expect(r.primary.calls).toBe(5);
+        expect(r.primary.messages.join("\n")).not.toContain("needs_correction");
+    });
     it("does not repair an output property-identity failure", async () => {
         const bad = draft();
         bad.propertyId = "different-property";

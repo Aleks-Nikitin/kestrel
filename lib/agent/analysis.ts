@@ -406,6 +406,9 @@ export async function runPropertyAnalysis({
       if (!r.toolCall.id) return stopAnalysis("An invoked tool has no verifiable call identifier.");
       if (r.toolCall.name === "verifyAnalysis") {
         if (verifiedSubmission || submissionAttempts >= 2) return stopAnalysis("The single analysis correction has been exhausted.");
+        if ((r.toolCall.args.propertyId !== undefined && r.toolCall.args.propertyId !== request.propertyId) ||
+            (r.toolCall.args.inputRevision !== undefined && r.toolCall.args.inputRevision !== request.inputRevision))
+          return stopAnalysis("The analysis submission identifies another property or revision; identity failures are not repairable.");
         submissionAttempts++;
         const shape = AnalysisSubmission.safeParse(r.toolCall.args);
         if (!shape.success) {
