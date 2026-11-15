@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { SpatialContext } from "@/lib/contracts";
 import { mismatchedSpatial, propertyId, spatial } from "../fixtures/contracts";
 import { Explorer, TourPanel } from "@/features/map/explorer";
-import { NO_SID_REASON, resolveTour, showcaseUrl, type TourState } from "@/features/map/tour";
+import { NO_SID_REASON, parseStartView, resolveTour, showcaseUrl, startViewOf, type TourState } from "@/features/map/tour";
 
 const ready = (data: typeof spatial) => ({ status: "ready" as const, data });
 const SID = "SxQL3iGyoDo";
@@ -96,7 +96,8 @@ describe("TourPanel", () => {
     const h = html({ status: "available", sid: SID, url: showcaseUrl(SID) });
     expect(h).toContain("<iframe");
     expect(h).toContain(`src="${showcaseUrl(SID).replace(/&/g, "&amp;")}"`);
-    expect(h).toContain('loading="lazy"');
+    // Not lazy: a lazy iframe can delay its load event and trigger a false "slow" notice.
+    expect(h).not.toContain('loading="lazy"');
     expect(h).toContain("sandbox=");
     expect(h).toContain('title="Tour"');
   });
@@ -116,5 +117,33 @@ describe("Explorer switch", () => {
     expect(h).toMatch(/<input(?=[^>]*value="3d")(?=[^>]*disabled)[^>]*>/);
     expect(h).toContain("3D tour unavailable");
     expect(h).toContain("does not include an embeddable Matterport Showcase model");
+  });
+});
+
+describe("optional start view", () => {
+  it("leaves the URL unchanged when no start view is supplied", () => {
+    expect(showcaseUrl(SID)).toBe(`https://my.matterport.com/show/?m=${SID}&play=1`);
+    expect(startViewOf(spatial)).toBeNull();
+  });
+  it("appends a validated sweep and rotation exactly as supplied", () => {
+    const v = parseStartView({ ss: "34", sr: ",-1.04" });
+    expect(v).toEqual({ ss: "34", sr: ",-1.04" });
+    expect(showcaseUrl(SID, v)).toBe(`https://my.matterport.com/show/?m=${SID}&play=1&ss=34&sr=,-1.04`);
+    expect(showcaseUrl(SID, parseStartView({ ss: "7" }))).toBe(`https://my.matterport.com/show/?m=${SID}&play=1&ss=7`);
+  });
+  it("drops malformed values instead of putting them in a URL", () => {
+    expect(parseStartView({ ss: "34&evil=1" })).toBeNull();
+    expect(parseStartView({ ss: 34 })).toBeNull();
+    expect(parseStartView(null)).toBeNull();
+    expect(parseStartView({ ss: "3", sr: "1;2" })).toEqual({ ss: "3" });
+    expect(parseStartView({ ss: "3", sr: "," })).toEqual({ ss: "3" });
+  });
+  it("uses a server-supplied start view when resolving the tour", () => {
+    const published = SpatialContext.parse({
+      ...spatial,
+      model: { ...spatial.model!, id: SID, showcase: { sid: SID, verifiedAt: "2026-11-14T18:00:00Z" } },
+    });
+    const t = resolveTour(ready(published), propertyId, undefined, () => ({ ss: "34", sr: ",-1.04" }));
+    expect(t).toMatchObject({ status: "available", url: expect.stringContaining("&ss=34&sr=,-1.04") });
   });
 });
