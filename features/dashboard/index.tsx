@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useReducer, useRef } from "react";
 import { Box, Calculator, ShieldCheck } from "lucide-react";
 import { KestrelMark } from "@/components/kestrel/kestrel-mark";
+import { SiteFooter } from "@/components/kestrel/site-footer";
 import { Reveal } from "@/components/kestrel/motion";
 import { apiClient } from "@/lib/contracts/client";
 import { ErrorPanel, LoadingPanel } from "@/components/kestrel/state-panels";
@@ -246,7 +247,7 @@ export function Dashboard({ client = apiClient }: { client?: ApiClient }) {
         structural inspection.
       </p>
 
-      <main className="mx-auto max-w-[90rem] space-y-4 px-4 py-5 sm:px-6 sm:py-8">
+      <main className="mx-auto max-w-[90rem] space-y-4 px-4 pb-12 pt-5 sm:px-6 sm:pb-16 sm:pt-8">
         {synthetic ? <SyntheticBanner /> : null}
 
         <div className="grid gap-6 lg:grid-cols-[17rem_minmax(0,1fr)] xl:grid-cols-[18rem_minmax(0,1fr)]">
@@ -368,6 +369,7 @@ export function Dashboard({ client = apiClient }: { client?: ApiClient }) {
           </div>
         </div>
       </main>
+      <SiteFooter />
     </div>
   );
 }
