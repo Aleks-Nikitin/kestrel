@@ -46,17 +46,48 @@ describe("memo view adapter", () => {
   });
 
   it("never turns an unavailable metric into zero and translates its reason", () => {
-    const v = buildMemoView(complete(), "analyze");
+    const r = complete();
+    r.comparison.results[2].yieldOnCost.unavailableReason = "MISSING_OR_UNDISCLOSED_TOTAL_PROJECT_COST";
+    const v = buildMemoView(r, "analyze");
     const yoc = v.highlights.find((m) => m.key === "yieldOnCost")!;
     expect(yoc.display).toBeNull();
     expect(yoc.unavailable).toBe("Needs a disclosed cost basis");
     expect(yoc.exact.value).toBeNull();
     expect(yoc.exact.reason).toMatch(/^[A-Z_]+$/);
-    expect(friendlyUnavailable("NOT_APPLICABLE", false)).toBe("Not applicable to baseline");
-    expect(friendlyUnavailable("NOT_APPLICABLE_OR_MISSING_COST_BASIS", true)).toBe("Not applicable to baseline");
+    expect(friendlyUnavailable("NOT_APPLICABLE", false)).toBe("Not applicable");
+    expect(friendlyUnavailable("NOT_APPLICABLE", true)).toBe("Not applicable to baseline");
     expect(friendlyUnavailable("MISSING_OR_UNDISCLOSED_TOTAL_PROJECT_COST", false)).toBe("Needs a disclosed cost basis");
     expect(friendlyUnavailable("Already a sentence.", false)).toBe("Already a sentence.");
     expect(html()).not.toContain("NOT_APPLICABLE_OR_MISSING_COST_BASIS</dd>");
+  });
+
+  it.each(["NEW_SCREENING_REASON", "UNKNOWN_COST_REVIEW", "UNKNOWN_INVESTMENT_REVIEW", "NOT_APPLICABLE_OR_MISSING_COST_BASIS"])("keeps unknown code %s neutral with its raw reason preserved", reason => {
+    const r = complete();
+    r.comparison.results[2].yieldOnCost.unavailableReason = reason;
+    const metric = buildMemoView(r, "analyze").highlights.find(m => m.key === "yieldOnCost")!;
+    expect(metric.display).toBeNull();
+    expect(metric.unavailable).toBe("Unavailable — review the reported reason in Technical audit");
+    expect(metric.exact.reason).toBe(reason);
+    expect(html(r)).toContain(`unavailable: ${reason}`);
+  });
+
+  it("distinguishes an unachieved payback from missing inputs", () => {
+    expect(friendlyUnavailable("NOT_ACHIEVED", false)).toContain("non-positive incremental NOI");
+    expect(friendlyUnavailable("NOT_ACHIEVED", false)).not.toContain("Needs");
+  });
+
+  it("preserves an unfamiliar screening finding and its actual explanation", () => {
+    const r = complete();
+    r.comparison.feasibility[1].checks = [{ dimension: "physical", status: "unverified", code: "NEW_SCREENING_REASON", explanation: "Specialist review is required.", evidenceIds: [] }];
+    const finding = buildMemoView(r, "risks").findings.find(f => f.code === "NEW_SCREENING_REASON")!;
+    expect(finding.explanation).toBe("Specialist review is required.");
+    expect(finding.status).toBe("unverified");
+    expect(finding.scenarios).toEqual(["alternative-a"]);
+  });
+
+  it("describes scenario validation without claiming a calculation", () => {
+    expect(activityLabel("proposeScenarios")).toBe("Validated the submitted scenarios");
+    expect(activityLabel("runComparison")).toBe("Calculated the scenario comparison");
   });
 
   it("merges only identical findings and keeps scenarios and every evidence id", () => {

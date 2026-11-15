@@ -52,12 +52,18 @@ export const STATUS_LABEL: Record<Check["status"], string> = {
 export function friendlyUnavailable(reason: string | null, baseline: boolean): string {
   if (!reason) return "Unavailable";
   if (!/^[A-Z0-9_]+$/.test(reason)) return reason;
-  if (/NOT_APPLICABLE/.test(reason) && (baseline || !/MISSING/.test(reason))) return "Not applicable to baseline";
-  if (/COST/.test(reason)) return "Needs a disclosed cost basis";
-  if (/INVESTMENT|INCREMENTAL/.test(reason)) return "Needs investment and incremental NOI";
-  if (/EXPENSES/.test(reason)) return "Needs income and operating expenses";
-  if (/BASELINE/.test(reason)) return "Needs baseline and scenario NOI";
-  return "Needs more inputs";
+  if (reason === "NOT_APPLICABLE") return baseline ? "Not applicable to baseline" : "Not applicable";
+  const known: Record<string, string> = {
+    NOT_ACHIEVED: "Payback is not achieved with non-positive incremental NOI",
+    MISSING_INPUT: "Required value not supplied",
+    UNSUPPORTED_OR_UNDISCLOSED_LEASE_BASIS: "Needs a supported, disclosed lease basis",
+    MISSING_OR_INCOMPLETE_EXPENSES: "Operating expense inputs are incomplete",
+    MISSING_INCOME_OR_EXPENSES: "Income or expense inputs are incomplete",
+    MISSING_SCENARIO_OR_BASELINE_NOI: "Needs scenario and baseline NOI",
+    MISSING_INVESTMENT_OR_INCREMENTAL_NOI: "Needs investment and incremental NOI",
+    MISSING_OR_UNDISCLOSED_TOTAL_PROJECT_COST: "Needs a disclosed cost basis",
+  };
+  return known[reason] ?? "Unavailable — review the reported reason in Technical audit";
 }
 
 export interface MemoMetric {
@@ -147,6 +153,7 @@ const uniq = <T,>(xs: T[]) => [...new Set(xs)];
 
 /** Plain words for what a reported tool did. The real names stay in the audit. */
 export function activityLabel(toolName: string): string {
+  if (toolName === "proposeScenarios") return "Validated the submitted scenarios";
   const n = toolName.toLowerCase();
   if (/todo|plan/.test(n)) return "Planned the investigation";
   if (/verif/.test(n)) return "Checked the submitted claims";
