@@ -4,11 +4,13 @@ import {FakeToolCallingModel} from "langchain";
 import {buildRequest} from "@/features/scenarios/model";
 import {verificationCall} from "../fixtures/verification";
 import {recordingModel} from "../fixtures/recording";
-import {property,spatial} from "../fixtures/contracts";
+import {property as fixtureProperty,spatial} from "../fixtures/contracts";
 import {createComparisonService} from "@/lib/contracts/service";
 import {createHandlers} from "@/lib/api/handlers";
 import {runPropertyAnalysis} from "@/lib/agent/analysis";
 import {readAgentConfig} from "@/lib/agent/config";
+// Fictional recorded-area input; no shared fixture or sponsor record is altered.
+const property={...fixtureProperty,rentableAreaSqft:{...fixtureProperty.rentableAreaSqft,origin:"source_data" as const}};
 const providers={property:{async listProperties(){return[property]},async getProperty(){return property}},spatial:{async getSpatialContext(){return spatial}}};
 const service=createComparisonService(providers);
 const config=readAgentConfig({ANALYSIS_ENABLED:"true"});
@@ -17,7 +19,7 @@ const http=(input:unknown)=>new Request("http://localhost/api/v1/scenarios/compa
 describe("actual scenario-editor financial payload and analysis path",()=>{
  it("transmits the disclosed cost basis, five capex categories, lease note and constraints separately",async()=>{
   const input=request();
-  expect(input.scenarios[1].capex).toEqual({renovation:{value:"100000"},conversion:{value:"0"},softCosts:{value:"15000"},contingency:{value:"15000"},other:{value:"0"}});
+  expect(input.scenarios[1].capex).toEqual({renovation:{value:"100000",acceptedEstimate:true},conversion:{value:"0",acceptedEstimate:true},softCosts:{value:"15000",acceptedEstimate:true},contingency:{value:"15000",acceptedEstimate:true},other:{value:"0",acceptedEstimate:true}});
   expect(input.scenarios[1].totalProjectCost.value).toBe("6130000");expect(input.scenarios[1].totalProjectCost.note).toContain("Hypothetical");
   expect(input.scenarios.every(s=>s.leaseBasis==="gross"&&!!s.rentNormalizationNote)).toBe(true);
   expect(input.constraints.maxInitialInvestment.value).toBe("2000000");
