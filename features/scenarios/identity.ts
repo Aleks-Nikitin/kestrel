@@ -2,7 +2,7 @@
 const ACCENT = [
   { letter: "A", bar: "bg-sky-700", badge: "bg-sky-700 text-white" },
   { letter: "B", bar: "bg-emerald-700", badge: "bg-emerald-700 text-white" },
-  { letter: "C", bar: "bg-violet-700", badge: "bg-violet-700 text-white" },
+  { letter: "C", bar: "bg-copper-600", badge: "bg-copper-600 text-white" },
   { letter: "D", bar: "bg-rose-700", badge: "bg-rose-700 text-white" },
   { letter: "E", bar: "bg-orange-700", badge: "bg-orange-700 text-white" },
   { letter: "F", bar: "bg-cyan-700", badge: "bg-cyan-700 text-white" },

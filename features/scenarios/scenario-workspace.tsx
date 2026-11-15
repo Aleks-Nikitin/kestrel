@@ -55,6 +55,14 @@ export function ScenarioWorkspace({
   const totalProblems = Object.keys(validation.fieldErrors).length + validation.formErrors.length;
   const loading = compare.status === "loading";
 
+  // The previous successful result, kept only to state what changed after a recalculation.
+  const [seen, setSeen] = useState<ComparisonResponseDTO | null>(null);
+  const [prevResponse, setPrevResponse] = useState<ComparisonResponseDTO | null>(null);
+  if (compare.status === "ready" && compare.data !== seen) {
+    setPrevResponse(seen);
+    setSeen(compare.data);
+  }
+
   function edit(action: EditorAction) {
     dispatch(action);
     onEdited(); // every edit advances the input revision and stales old results
@@ -84,12 +92,15 @@ export function ScenarioWorkspace({
     <section
       id="section-scenarios"
       aria-labelledby="scenarios-heading"
-      className="scroll-mt-28 lg:scroll-mt-20 rounded-lg border border-slate-200 bg-white p-4 sm:p-5"
+      className="scroll-mt-28 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 lg:scroll-mt-20"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 id="scenarios-heading" tabIndex={-1} className="text-lg font-semibold text-slate-900 outline-none">
-          Scenarios
-        </h2>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-copper-700">Financial comparison</p>
+          <h2 id="scenarios-heading" tabIndex={-1} className="mt-0.5 font-display text-2xl text-slate-900 outline-none sm:text-3xl">
+            Scenarios
+          </h2>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           {property.dataMode === "synthetic" ? <DataModeBadge mode="synthetic" prefix="Property data" /> : null}
           <Pill>Input revision {inputRevision}</Pill>
@@ -132,7 +143,7 @@ export function ScenarioWorkspace({
                   className={
                     "-mb-px rounded-t-md border px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-sky-600 " +
                     (selected
-                      ? "border-slate-200 border-b-white bg-white font-semibold text-slate-900"
+                      ? "border-slate-200 border-b-white border-t-2 border-t-copper-600 bg-white font-semibold text-slate-900"
                       : "border-transparent text-slate-700 hover:bg-slate-100")
                   }
                 >
@@ -208,7 +219,7 @@ export function ScenarioWorkspace({
         <div className="flex flex-wrap items-center gap-3">
           <Button
             type="button"
-            className="bg-slate-900 text-white hover:bg-slate-700"
+            className="h-11 bg-espresso-800 px-5 text-ivory hover:bg-espresso-700"
             disabled={loading}
             onClick={submit}
           >
@@ -233,7 +244,8 @@ export function ScenarioWorkspace({
         ) : null}
       </div>
 
-      <div id="section-comparison" className="mt-6 scroll-mt-28 lg:scroll-mt-20" aria-live="polite">
+      <div id="section-comparison" className="mt-8 scroll-mt-28 border-t border-slate-200 pt-6 lg:scroll-mt-20" aria-live="polite">
+        <h3 className="mb-3 font-display text-xl text-slate-900">Income comparison</h3>
         {compare.status === "idle" ? (
           <p className="text-sm text-slate-700">No comparison has been calculated yet.</p>
         ) : null}
@@ -241,7 +253,7 @@ export function ScenarioWorkspace({
         {compare.status === "error" ? (
           <ErrorPanel what="Comparison" error={compare.error} onRetry={submit} />
         ) : null}
-        {compare.status === "ready" ? <ComparisonView response={compare.data} stale={stale} /> : null}
+        {compare.status === "ready" ? <ComparisonView response={compare.data} stale={stale} previous={prevResponse} /> : null}
       </div>
     </section>
     {children?.({ request: validation.request, problems: totalProblems })}
