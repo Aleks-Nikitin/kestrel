@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useReducer, useRef } from "react";
+import { Building2, MapPin } from "lucide-react";
 import { apiClient } from "@/lib/contracts/client";
 import { ErrorPanel, LoadingPanel } from "@/components/kestrel/state-panels";
 import { SyntheticBanner } from "@/components/kestrel/synthetic-banner";
@@ -216,12 +217,17 @@ export function Dashboard({ client = apiClient }: { client?: ApiClient }) {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-baseline justify-between gap-x-6 gap-y-1 px-4 py-4 sm:px-6">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Kestrel</h1>
-            <p className="text-sm text-slate-600">See the potential in every property.</p>
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-4 sm:px-6">
+          <div className="flex items-center gap-3">
+            <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-slate-900 text-white" aria-hidden>
+              <Building2 className="size-5" />
+            </span>
+            <div>
+              <h1 className="text-xl font-semibold leading-tight tracking-tight">Kestrel</h1>
+              <p className="text-sm text-slate-600">See the potential in every property.</p>
+            </div>
           </div>
-          <p className="text-xs text-slate-600">
+          <p className="max-w-md text-xs leading-relaxed text-slate-600 sm:text-right">
             Preliminary screening — not an appraisal, zoning determination or
             structural inspection.
           </p>
@@ -283,9 +289,12 @@ export function Dashboard({ client = apiClient }: { client?: ApiClient }) {
             ) : null}
 
             {!state.selectedId ? (
-              <div className="rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-700">
-                Select a property to see its facts, spatial evidence and
-                analysis.
+              <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-700">
+                <MapPin className="size-6 text-slate-400" aria-hidden />
+                <p>
+                  Select a property to see its facts, spatial evidence and
+                  analysis.
+                </p>
               </div>
             ) : null}
 

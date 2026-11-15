@@ -1,14 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ExternalLink, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const SLOW_MS = 20_000;
+/**
+ * After this long without the iframe's load event we show a notice. It is only
+ * a notice: Matterport keeps loading assets after the page itself is usable,
+ * so a late load event does not mean the tour failed.
+ */
+const SLOW_MS = 12_000;
 
 /**
  * Matterport Showcase in a plain iframe. Mounted only in 3D mode, so nothing
- * is fetched from Matterport until the user asks for it.
+ * is fetched from Matterport until the user asks for it. Kestrel does not
+ * inspect Matterport's own network requests: analytics or telemetry calls that
+ * are aborted say nothing about whether the scene works.
  */
 export function TourViewer({
   sid,
@@ -48,49 +55,81 @@ function TourFrame({
   onBack: () => void;
   onRetry: () => void;
 }) {
-  const [phase, setPhase] = useState<"loading" | "loaded" | "slow">("loading");
+  const [phase, setPhase] = useState<"loading" | "slow" | "ready">("loading");
+  const [dismissed, setDismissed] = useState(false);
+  const frame = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
     const t = setTimeout(() => setPhase((p) => (p === "loading" ? "slow" : p)), SLOW_MS);
     return () => clearTimeout(t);
   }, []);
 
+  // Clicking into the tour moves focus into the iframe, which proves the person
+  // is already using it, whatever its load event has or hasn't done.
+  useEffect(() => {
+    const onBlur = () => {
+      if (document.activeElement === frame.current) setPhase("ready");
+    };
+    window.addEventListener("blur", onBlur);
+    return () => window.removeEventListener("blur", onBlur);
+  }, []);
+
   return (
     <div className="relative h-full w-full bg-slate-900" data-testid="tour-viewer" data-sid={sid}>
       <iframe
+        ref={frame}
         title={title}
         src={url}
-        loading="lazy"
         allow="fullscreen; xr-spatial-tracking"
         allowFullScreen
         referrerPolicy="strict-origin-when-cross-origin"
         sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-        onLoad={() => setPhase("loaded")}
+        onLoad={() => setPhase("ready")}
         className="size-full border-0"
       />
       {phase === "loading" ? (
-        <div
-          role="status"
-          className="absolute inset-0 flex items-center justify-center gap-2 bg-slate-900/80 text-sm text-white"
-        >
-          <Loader2 className="size-4 animate-spin" aria-hidden /> Loading 3D tour…
+        <div className="pointer-events-none absolute inset-0 grid place-items-center">
+          <p
+            role="status"
+            className="flex items-center gap-2 rounded-full bg-slate-900/85 px-4 py-2 text-sm text-white"
+          >
+            <Loader2 className="size-4 animate-spin motion-reduce:animate-none" aria-hidden /> Loading 3D tour…
+          </p>
         </div>
       ) : null}
-      {phase === "slow" ? (
+      {phase === "slow" && !dismissed ? (
         <div
-          role="alert"
-          data-testid="tour-error"
-          className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-900/90 p-6 text-center text-sm text-white"
+          role="status"
+          data-testid="tour-slow"
+          className="absolute inset-x-2 top-2 z-20 rounded-lg border border-slate-600 bg-slate-900/95 p-3 text-sm text-white shadow-lg sm:inset-x-auto sm:left-3 sm:max-w-md"
         >
-          <p className="font-semibold">The 3D tour is taking too long or was blocked.</p>
-          <p className="max-w-md text-slate-200">
-            The embed may be restricted for this site, or the connection is slow.
-            The 2D map and all property data are unaffected.
+          <div className="flex items-start justify-between gap-2">
+            <p className="font-medium">Still loading the 3D tour</p>
+            <button
+              type="button"
+              onClick={() => setDismissed(true)}
+              aria-label="Dismiss this notice"
+              className="-m-1 grid size-8 cursor-pointer place-items-center rounded-md text-slate-200 hover:bg-slate-700 focus-visible:outline-2 focus-visible:outline-sky-400"
+            >
+              <X className="size-4" aria-hidden />
+            </button>
+          </div>
+          <p className="mt-1 text-slate-200">
+            Matterport can take a while, and the tour may already be usable. This notice clears itself once it
+            loads. The 2D map and all property data are unaffected.
           </p>
-          <div className="flex flex-wrap justify-center gap-2">
+          <div className="mt-2 flex flex-wrap gap-2">
             <Button type="button" size="sm" variant="secondary" onClick={onRetry}>
               Try again
             </Button>
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md bg-white px-3 text-sm font-medium text-slate-900 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-sky-400"
+            >
+              <ExternalLink className="size-4" aria-hidden /> Open tour in new tab
+            </a>
             <Button type="button" size="sm" variant="secondary" onClick={onBack}>
               Back to 2D map
             </Button>

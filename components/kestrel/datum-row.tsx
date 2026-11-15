@@ -35,15 +35,14 @@ export function DatumRow<T>({
             </span>
           )}
           <OriginBadge origin={datum.origin} />
-          <span className="text-xs text-slate-600">
-            Unit: {UNIT_LABEL[datum.unit] ?? datum.unit}
-          </span>
         </div>
         <details className="mt-1 text-xs text-slate-600">
           <summary className="cursor-pointer select-none rounded text-slate-600 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600">
             Provenance
           </summary>
           <dl className="mt-1 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
+            <dt>Unit</dt>
+            <dd>{UNIT_LABEL[datum.unit] ?? datum.unit}</dd>
             <dt>Retrieved</dt>
             <dd>{formatInstant(datum.recordedAt)}</dd>
             <dt>Source date</dt>

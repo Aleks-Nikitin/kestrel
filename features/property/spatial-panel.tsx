@@ -3,7 +3,7 @@ import { DataModeBadge, Pill } from "@/components/kestrel/badges";
 import { formatInstant } from "@/features/dashboard/format";
 import { ProvenanceChip, providerKind } from "@/components/kestrel/provenance";
 import { EvidenceList } from "./evidence-list";
-import { RoomSchematic } from "./room-schematic";
+import { RoomMeasurements } from "./room-measurements";
 import { locationWithinFootprint } from "@/features/map/geo";
 
 const PROVIDER_LABEL = { matterport: "Matterport", vexcel: "Vexcel" } as const;
@@ -13,8 +13,23 @@ const MATCH_TONE = {
   unmatched: "red",
 } as const;
 
-function dim(value: string | null) {
-  return value === null ? "—" : value;
+function Group({
+  id,
+  title,
+  children,
+}: {
+  id: string;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section aria-labelledby={id} className="mt-6 border-t border-slate-200 pt-5">
+      <h3 id={id} className="text-sm font-semibold uppercase tracking-wide text-slate-700">
+        {title}
+      </h3>
+      {children}
+    </section>
+  );
 }
 
 export function SpatialPanel({
@@ -33,26 +48,30 @@ export function SpatialPanel({
   return (
     <section
       aria-labelledby="spatial-heading"
-      className="rounded-lg border border-slate-200 bg-white p-4 sm:p-5"
+      className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6"
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
-        <h2 id="spatial-heading" className="text-lg font-semibold text-slate-900">
-          Spatial evidence · {PROVIDER_LABEL[spatial.provider]}
-        </h2>
+        <div>
+          <h2 id="spatial-heading" className="text-xl font-semibold tracking-tight text-slate-900">
+            Spatial evidence · {PROVIDER_LABEL[spatial.provider]}
+          </h2>
+        </div>
         <DataModeBadge mode={spatial.dataMode} prefix="Spatial data" />
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-        <Pill tone={MATCH_TONE[match.status]}>Match: {match.status}</Pill>
-        <span className="text-xs text-slate-600">
-          Method: {match.method === "provider_link" ? "provider link" : "geographic review"}
-          {match.reviewedAt ? ` · Reviewed ${formatInstant(match.reviewedAt)}` : ""}
-        </span>
+      <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3 sm:p-4">
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <Pill tone={MATCH_TONE[match.status]}>Match: {match.status}</Pill>
+          <span className="text-xs text-slate-600">
+            Method: {match.method === "provider_link" ? "provider link" : "geographic review"}
+            {match.reviewedAt ? ` · Reviewed ${formatInstant(match.reviewedAt)}` : ""}
+          </span>
+        </div>
+        <p className="mt-2 text-sm leading-relaxed text-slate-800">{match.explanation}</p>
       </div>
-      <p className="mt-1 text-sm text-slate-800">{match.explanation}</p>
 
       {spatial.unavailableReason ? (
-        <p className="mt-3 rounded-md border border-slate-300 bg-slate-50 p-3 text-sm text-slate-800">
+        <p className="mt-3 rounded-lg border border-slate-300 bg-slate-50 p-3 text-sm text-slate-800">
           <strong>Unavailable:</strong> {spatial.unavailableReason}
         </p>
       ) : null}
@@ -65,121 +84,94 @@ export function SpatialPanel({
 
       {verified ? (
         <>
-          <h3 className="mt-5 text-sm font-semibold text-slate-900">Imagery</h3>
-          {imagery ? (
-            <figure className="mt-2">
-              {/* Authorized same-origin proxy asset; not optimizable by next/image. */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={imagery.displayPath}
-                alt="Matched imagery of the selected property"
-                className="max-h-72 w-full rounded-md border border-slate-200 object-cover"
-              />
-              <figcaption className="mt-1 text-xs text-slate-600">
-                {imagery.attribution} · Captured{" "}
-                {imagery.capturedAt ? formatInstant(imagery.capturedAt) : "date unknown"}
-              </figcaption>
-            </figure>
-          ) : (
-            <p className="mt-1 text-sm text-slate-700">
-              No matched imagery is available for this property.
+          <Group id="spatial-imagery-heading" title="Imagery">
+            {imagery ? (
+              <figure className="mt-3">
+                {/* Authorized same-origin proxy asset; not optimizable by next/image. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={imagery.displayPath}
+                  alt="Matched imagery of the selected property"
+                  className="max-h-72 w-full rounded-lg border border-slate-200 object-cover"
+                />
+                <figcaption className="mt-1.5 text-xs text-slate-600">
+                  {imagery.attribution} · Captured{" "}
+                  {imagery.capturedAt ? formatInstant(imagery.capturedAt) : "date unknown"}
+                </figcaption>
+              </figure>
+            ) : (
+              <p className="mt-2 text-sm text-slate-700">
+                No matched imagery is available for this property.
+              </p>
+            )}
+            <p className="mt-2 text-sm text-slate-800" data-testid="footprint-check">
+              {footprint === null
+                ? "No building footprint was supplied, so the coordinates could not be checked against one."
+                : location === null
+                  ? "The property has no known coordinates to check against the footprint."
+                  : inside
+                    ? "The property's coordinates fall inside the matched footprint."
+                    : "The property's coordinates fall outside the matched footprint — treat the match with caution."}
             </p>
-          )}
-          <p className="mt-2 text-sm text-slate-800" data-testid="footprint-check">
-            {footprint === null
-              ? "No building footprint was supplied, so the coordinates could not be checked against one."
-              : location === null
-                ? "The property has no known coordinates to check against the footprint."
-                : inside
-                  ? "The property's coordinates fall inside the matched footprint."
-                  : "The property's coordinates fall outside the matched footprint — treat the match with caution."}
-          </p>
+          </Group>
 
-          <h3 className="mt-5 text-sm font-semibold text-slate-900">
-            3D model measurements
-          </h3>
-          {model ? (
-            <div className="mt-2 text-sm">
-              <p className="text-slate-800">
-                Model <code className="text-xs">{model.id}</code> · joined by{" "}
-                {model.joinSource === "costar_property_id"
-                  ? "commercial property ID"
-                  : "geographic review"}
-              </p>
-              <RoomSchematic rooms={model.rooms} />
-              <p className="mt-3 text-xs text-slate-600">
-                Dimensions in metres (m); areas in square metres (m²). Unit
-                conversion: {model.conversionNote}
-              </p>
-              <div
-                role="region"
-                aria-label="Model room measurements"
-                tabIndex={0}
-                className="mt-2 overflow-x-auto rounded-md border border-slate-200 focus-visible:outline-2 focus-visible:outline-sky-600"
-              >
-                <table className="w-full min-w-[28rem] text-left text-sm">
-                  <caption className="sr-only">Room measurements from the model</caption>
-                  <thead className="bg-slate-50 text-xs text-slate-700">
-                    <tr>
-                      <th scope="col" className="px-3 py-2">Room</th>
-                      <th scope="col" className="px-3 py-2 text-right">Width (m)</th>
-                      <th scope="col" className="px-3 py-2 text-right">Depth (m)</th>
-                      <th scope="col" className="px-3 py-2 text-right">Height (m)</th>
-                      <th scope="col" className="px-3 py-2 text-right">Floor area (m²)</th>
-                    </tr>
-                  </thead>
-                  <tbody className="tabular-nums">
-                    {model.rooms.map((r) => (
-                      <tr key={r.id} className="border-t border-slate-200">
-                        <th scope="row" className="px-3 py-2 font-medium">{r.id}</th>
-                        <td className="px-3 py-2 text-right">{dim(r.width)}</td>
-                        <td className="px-3 py-2 text-right">{dim(r.depth)}</td>
-                        <td className="px-3 py-2 text-right">{dim(r.height)}</td>
-                        <td className="px-3 py-2 text-right">{dim(r.floorArea)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+          <Group id="spatial-rooms-heading" title="Matterport room measurements">
+            {model ? (
+              <div className="text-sm">
+                <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-600">
+                  <ProvenanceChip kind={providerKind(spatial.provider)} />
+                  {spatial.dataMode === "synthetic" ? <ProvenanceChip kind="synthetic" /> : null}
+                  <span className="min-w-0 [overflow-wrap:anywhere]">
+                    Model <code>{model.id}</code> · joined by{" "}
+                    {model.joinSource === "costar_property_id"
+                      ? "commercial property ID"
+                      : "geographic review"}
+                  </span>
+                </p>
+                <RoomMeasurements model={model} />
+                <p className="mt-3 text-xs text-slate-600">
+                  {model.signedUrlExpiresAt
+                    ? `Model link expires ${formatInstant(model.signedUrlExpiresAt)}.`
+                    : "No expiring model link."}
+                </p>
               </div>
-              <p className="mt-1 text-xs text-slate-600">
-                {model.signedUrlExpiresAt
-                  ? `Model link expires ${formatInstant(model.signedUrlExpiresAt)}.`
-                  : "No expiring model link."}
+            ) : (
+              <p className="mt-2 text-sm text-slate-700">
+                No model measurements are available for this property.
               </p>
-            </div>
-          ) : (
-            <p className="mt-1 text-sm text-slate-700">
-              No model measurements are available for this property.
-            </p>
-          )}
+            )}
+          </Group>
 
-          <h3 className="mt-5 text-sm font-semibold text-slate-900">Observations</h3>
-          {spatial.observations.length ? (
-            <ul className="mt-2 space-y-2">
-              {spatial.observations.map((o) => (
-                <li key={o.id} className="rounded-md border border-slate-200 p-3 text-sm">
-                  <p className="text-slate-900">{o.statement}</p>
-                  <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-slate-600">
-                    <ProvenanceChip kind={providerKind(spatial.provider)} />
-                    {spatial.dataMode === "synthetic" ? <ProvenanceChip kind="synthetic" /> : null}
-                    <Pill tone={o.origin === "source_data" ? "green" : "amber"}>
-                      {o.origin === "source_data" ? "Source data" : "Estimate"}
-                    </Pill>{" "}
-                    Evidence: {o.evidenceIds.join(", ")}
-                  </p>
-                  {o.limitations.length ? (
-                    <ul className="mt-1 list-disc pl-5 text-xs text-slate-700">
-                      {o.limitations.map((l) => (
-                        <li key={l}>{l}</li>
-                      ))}
-                    </ul>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-1 text-sm text-slate-700">No observations supplied.</p>
-          )}
+          <Group id="spatial-observations-heading" title="Observations">
+            {spatial.observations.length ? (
+              <ul className="mt-3 space-y-2">
+                {spatial.observations.map((o) => (
+                  <li key={o.id} className="rounded-lg border border-slate-200 p-3 text-sm">
+                    <p className="text-slate-900">{o.statement}</p>
+                    <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-slate-600">
+                      <ProvenanceChip kind={providerKind(spatial.provider)} />
+                      {spatial.dataMode === "synthetic" ? <ProvenanceChip kind="synthetic" /> : null}
+                      <Pill tone={o.origin === "source_data" ? "green" : "amber"}>
+                        {o.origin === "source_data" ? "Source data" : "Estimate"}
+                      </Pill>{" "}
+                      <span className="min-w-0 [overflow-wrap:anywhere]">
+                        Evidence: {o.evidenceIds.join(", ")}
+                      </span>
+                    </p>
+                    {o.limitations.length ? (
+                      <ul className="mt-1.5 list-disc pl-5 text-xs text-slate-700">
+                        {o.limitations.map((l) => (
+                          <li key={l}>{l}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-2 text-sm text-slate-700">No observations supplied.</p>
+            )}
+          </Group>
         </>
       ) : null}
 
