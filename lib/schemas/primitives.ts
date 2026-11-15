@@ -48,6 +48,7 @@ export const Period = z
   })
   .refine((p) => {
     const start = new Date(p.start + "T00:00:00Z");
+    if (!Number.isFinite(start.getTime())) return false;
     start.setUTCFullYear(start.getUTCFullYear() + 1);
     return start.toISOString().slice(0, 10) === p.end;
   }, "Period must be exactly one calendar year, end exclusive");

@@ -28,6 +28,13 @@ describe("actual scenario-editor financial payload and analysis path",()=>{
   expect(body.data.comparison.results.map((r:{noi:{value:string}})=>r.noi.value)).toEqual(["77810","92560","105380"]);
   expect(body.data.comparison.results[1].initialInvestment.value).toBe("130000");expect(body.data.comparison.results[1].yieldOnCost.value).not.toBeNull();
  });
+ it("returns a safe input error for malformed period dates",async()=>{
+  const input=request();input.scenarios[0].period.start="not-a-date";
+  const response=await createHandlers(()=>providers).compare(http(input));
+  expect(response.status).toBe(400);
+  const body=await response.json();expect(body.ok).toBe(false);expect(body.error.code).toBe("INVALID_INPUT");
+  expect(JSON.stringify(body)).not.toContain("RangeError");
+ });
  it("never uses a total-project-cost value as missing upfront capex; analysis still requests input",async()=>{
   const input=request();for(const s of input.scenarios.filter(s=>s.role==="alternative"))for(const d of Object.values(s.capex))d.value=null;
   const comparison=await service.compare(input,AbortSignal.timeout(1000));expect(comparison.comparison.preferredScenarioId).toBeNull();expect(comparison.comparison.results[1].initialInvestment.value).toBeNull();
