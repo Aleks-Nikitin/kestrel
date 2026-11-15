@@ -281,14 +281,27 @@ export function ScenarioWorkspace({
           </p>
         </div>
         {ready.total > 0 ? (
-          <p
+          <div
             data-testid="readiness-summary"
             className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950"
           >
-            <strong>{ready.total} {ready.total === 1 ? "input is" : "inputs are"} still needed for an evidence-backed recommendation.</strong>{" "}
-            You can still calculate: anything unknown stays unavailable and nothing is assumed. Look for the amber
-            {" "}<em>Needed</em> marks on the scenario tabs and the investment constraints.
-          </p>
+            <p><strong>You can calculate a partial comparison now.</strong>{" "}
+              For a conditional recommendation, complete the needed income and alternative investment assumptions,
+              and set at least one capital or return constraint. Unknown values stay unavailable.
+            </p>
+            <details className="mt-2">
+              <summary className="cursor-pointer text-xs font-medium">Review {ready.total} scenario-input gaps</summary>
+              <p className="mt-2 text-xs">
+                This counts editable entries and choices across {model.scenarios.length} separate financial scenarios
+                {ready.constraints ? ", plus an unset investment constraint" : ""}. It does not count missing property records, legal verification
+                or spatial measurements. Look for the <em>Needed</em> marks; source evidence and due diligence remain separate.
+              </p>
+              <ul className="mt-1 list-inside list-disc text-xs">
+                {model.scenarios.map(s => <li key={s.id}>{s.name}: {Object.keys(ready.byScenario[s.id]).length} input gaps</li>)}
+                {ready.constraints ? <li>Investment constraints: choose at least one capital or return limit</li> : null}
+              </ul>
+            </details>
+          </div>
         ) : null}
       </div>
 

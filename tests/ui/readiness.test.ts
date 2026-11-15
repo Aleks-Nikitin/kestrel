@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { editorReducer } from "../../features/scenarios/editor-state";
-import { initialModel, type EditorModel, type ScenarioForm } from "../../features/scenarios/model";
+import { initialModel, validateModel, type EditorModel, type ScenarioForm } from "../../features/scenarios/model";
+import { createIllustrativeInvestmentExample } from "@/lib/scenarios/illustrative-example";
 import { constraintsNeed, describeMissing, readiness, scenarioNeeds } from "../../features/scenarios/readiness";
 import { property } from "../fixtures/contracts";
 
@@ -24,6 +25,29 @@ function complete(s: ScenarioForm): ScenarioForm {
 const model = (): EditorModel => initialModel(property, 2026);
 
 describe("recommendation readiness", () => {
+  it("explains the 37 count separately from request validation and external evidence", () => {
+    const p = structuredClone(property);
+    p.rentableAreaSqft.origin = "source_data";
+    p.occupancyRatio = { ...p.occupancyRatio, value: null, origin: "unknown", evidenceIds: [], note: "Not recorded" };
+    const m = initialModel(p, 2026), r = readiness(m);
+    expect(Object.values(r.byScenario).map(n => Object.keys(n).length)).toEqual([8, 14, 14]);
+    expect(r.total).toBe(37);
+    expect(Object.keys(r.byScenario.baseline)).toEqual(["leaseBasis", "rentNormalizationNote", "annualRentPerSqft", "occupancyRatio", "collectionLossRatio", "annualConcessions", "otherIncome", "expenseTotal"]);
+    expect(Object.keys(r.byScenario["alternative-a"])).toEqual(expect.arrayContaining(["rentableAreaSqft", "capex.renovation", "capex.conversion", "capex.softCosts", "capex.contingency", "capex.other"]));
+    expect(validateModel(m, p.id, 1).request).toBeNull();
+    for (const s of m.scenarios) s.proposedUse = "Explicit hypothetical use";
+    expect(validateModel(m, p.id, 1).request).not.toBeNull();
+    expect(readiness(m).total).toBe(37);
+  });
+  it("clears counted assumption gaps after explicit illustrative preparation", () => {
+    const p = structuredClone(property); p.rentableAreaSqft.origin = "source_data";
+    const preset = createIllustrativeInvestmentExample(p, 2026);
+    expect(preset.ok).toBe(true);
+    if (!preset.ok) throw new Error("Synthetic preset unavailable");
+    expect(readiness(preset.model).total).toBe(0);
+    expect(validateModel(preset.model, p.id, 2).request).not.toBeNull();
+    expect(p.documentedConstraints).toHaveLength(0);
+  });
   it("lists what a blank alternative still needs, from the server's existing rules", () => {
     const m = model();
     const needs = scenarioNeeds(m.scenarios[1], m.constraints);
