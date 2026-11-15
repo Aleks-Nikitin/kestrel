@@ -1,10 +1,6 @@
 import "server-only";
 import { extname } from "node:path";
-import { z } from "zod";
 import {
-  Property,
-  ShowcasePublication,
-  Id,
   type PropertyProvider,
   type SpatialProvider,
 } from "@/lib/contracts";
@@ -16,15 +12,7 @@ import {
 import { MatterportClient } from "./matterport/client";
 import { MatterportSpatialProvider } from "./matterport/spatial";
 import { ProviderError } from "./errors";
-const ProtectedRecord = z.strictObject({
-  property: Property,
-  modelMapping: z.strictObject({
-    propertyId: Id,
-    modelId: Id,
-    source: z.literal("commercial_property_mapping"),
-    showcase: ShowcasePublication.optional(),
-  }),
-});
+import { createProtectedCatalog } from "./protected-catalog";
 export function createRuntimeProviders(): {
   property: PropertyProvider;
   spatial: SpatialProvider;
@@ -56,48 +44,15 @@ export function createRuntimeProviders(): {
         "Protected property configuration is invalid.",
       );
     }
-    const record = ProtectedRecord.safeParse(raw);
-    if (
-      !record.success ||
-      record.data.property.id !== record.data.modelMapping.propertyId
-    )
-      throw new ProviderError(
-        "DATA_MISMATCH",
-        "Protected property configuration failed identity validation.",
-      );
-    const property = record.data.property;
-    property.dataMode = "licensed_cache";
-    property.evidence = property.evidence.map((e) => ({
-      ...e,
-      allowedUse: permitted,
+    let additions: unknown = [];
+    try {
+      if (process.env.KESTREL_PROTECTED_CATALOG) additions = JSON.parse(process.env.KESTREL_PROTECTED_CATALOG);
+    } catch { throw new ProviderError("DATA_MISMATCH", "Protected catalog configuration is invalid."); }
+    return createProtectedCatalog(raw, additions, { agreementAccepted: true, permissions: permitted }, new MatterportClient({
+      apiKey: process.env.MATTERPORT_API_KEY, apiToken: process.env.MATTERPORT_API_TOKEN, agreementAccepted: true,
     }));
-    const binding = record.data.modelMapping;
-    const propertyProvider: PropertyProvider = {
-      async listProperties({ signal }) {
-        signal.throwIfAborted();
-        return [property];
-      },
-      async getProperty({ propertyId, signal }) {
-        signal.throwIfAborted();
-        if (propertyId !== property.id)
-          throw new ProviderError(
-            "NOT_FOUND",
-            "Property not in the permitted demo catalog.",
-          );
-        return property;
-      },
-    };
-    const spatialProvider = new MatterportSpatialProvider(
-      new MatterportClient({
-        apiKey: process.env.MATTERPORT_API_KEY,
-        apiToken: process.env.MATTERPORT_API_TOKEN,
-        agreementAccepted: true,
-      }),
-      async () => [binding],
-      { permissions: permitted, showcase: binding.showcase },
-    );
-    return { property: propertyProvider, spatial: spatialProvider };
   }
+
   const kitDir = process.env.COSTAR_KIT_DIR;
   if (!kitDir)
     throw new ProviderError(
