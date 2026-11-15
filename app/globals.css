@@ -1,26 +1,34 @@
 @import "tailwindcss";
 
+/*
+ * Kestrel "Survey" design tokens.
+ *
+ * The palette is taken from the bird: slate-ink (head and tail), rufous (the
+ * back, and the malar stripe in the logo), buff (the breast). Ink carries the
+ * shell and the building stage, cool drafting-film paper carries the numbers,
+ * and rufous is the only accent: primary actions and the preferred scenario.
+ */
 :root {
   color-scheme: light;
-  --background: #f8f4ea;
-  --foreground: #221811;
+  --background: #f2f4f5;
+  --foreground: #14202b;
   --card: #ffffff;
-  --card-foreground: #221811;
+  --card-foreground: #14202b;
   --popover: #ffffff;
-  --popover-foreground: #221811;
-  --primary: #2c1f16;
-  --primary-foreground: #fbf8f1;
-  --secondary: #f0e9db;
-  --secondary-foreground: #221811;
-  --muted: #f0e9db;
-  --muted-foreground: #64574a;
-  --accent: #f0e9db;
-  --accent-foreground: #221811;
-  --destructive: #a33a2b;
-  --border: #d2c5ad;
-  --input: #d2c5ad;
-  --ring: #94532b;
-  --radius: 0.625rem;
+  --popover-foreground: #14202b;
+  --primary: #14202b;
+  --primary-foreground: #f2f4f5;
+  --secondary: #e6ebee;
+  --secondary-foreground: #14202b;
+  --muted: #e6ebee;
+  --muted-foreground: #4a5f71;
+  --accent: #e6ebee;
+  --accent-foreground: #14202b;
+  --destructive: #932b22;
+  --border: #d5dde3;
+  --input: #b3c0ca;
+  --ring: #a6481f;
+  --radius: 0.5rem;
 }
 
 @theme inline {
@@ -46,79 +54,160 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-archivo), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --font-serif: var(--font-newsreader), "Iowan Old Style", Georgia, serif;
+}
+
+@theme {
+  /* Slate-ink: structure, text and the dark building stage. */
+  --color-ink-50: #f2f4f5;
+  --color-ink-100: #e6ebee;
+  --color-ink-200: #d5dde3;
+  --color-ink-300: #b3c0ca;
+  --color-ink-400: #8598a8;
+  --color-ink-500: #5b7083;
+  --color-ink-600: #4a5f71;
+  --color-ink-700: #33485a;
+  --color-ink-800: #1f3040;
+  --color-ink-900: #14202b;
+  --color-ink-950: #0c151d;
+
+  /* Rufous: the single accent. */
+  --color-rufous-50: #fbf2eb;
+  --color-rufous-100: #f6e3d6;
+  --color-rufous-200: #edc7ad;
+  --color-rufous-300: #e2a27c;
+  --color-rufous-400: #d37a48;
+  --color-rufous-500: #c05a2a;
+  --color-rufous-600: #a6481f;
+  --color-rufous-700: #8a3a17;
+  --color-rufous-800: #6c2d13;
+
+  /* Buff: light type and marks on ink. */
+  --color-buff-100: #f6eedf;
+  --color-buff-200: #ead9bf;
+  --color-buff-300: #d9c3a0;
+
+  /* Status. Always paired with a word or a shape, never colour alone. */
+  --color-spruce-50: #eef6f2;
+  --color-spruce-100: #d9ece3;
+  --color-spruce-300: #8fc4ac;
+  --color-spruce-600: #1f6b4f;
+  --color-spruce-700: #17573f;
+  --color-spruce-800: #10402e;
+  --color-ochre-50: #fcf5e3;
+  --color-ochre-100: #f7eacb;
+  --color-ochre-300: #e2c074;
+  --color-ochre-600: #8a5d00;
+  --color-ochre-700: #6e4a00;
+  --color-ochre-800: #553900;
+  --color-brick-50: #fcf0ee;
+  --color-brick-100: #f7dedb;
+  --color-brick-300: #e0a39c;
+  --color-brick-600: #a8352b;
+  --color-brick-700: #932b22;
+  --color-brick-800: #6f2019;
+
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 /*
- * Kestrel design tokens. Components were written against Tailwind's slate and
- * sky scales, so those scales are remapped here to warm stone neutrals and a
- * muted steel blue (kept for links, focus and "blue" semantics). Brand colour
- * lives in the espresso, copper and ivory scales below.
+ * LEGACY-ALIASES: components not yet moved to the Survey tokens still use the
+ * old scale names. They resolve to the new palette so the app stays coherent
+ * between milestones; this block is deleted once nothing references it.
  */
 @theme {
-  --color-slate-50: #f8f4ea;
-  --color-slate-100: #f0e9db;
-  --color-slate-200: #e4dac7;
-  --color-slate-300: #d2c5ad;
-  --color-slate-400: #a99a83;
-  --color-slate-500: #7b6d5c;
-  --color-slate-600: #64574a;
-  --color-slate-700: #4b3f34;
-  --color-slate-800: #33291f;
-  --color-slate-900: #221811;
-  --color-slate-950: #150e09;
+  --color-slate-50: #f2f4f5; --color-slate-100: #e6ebee; --color-slate-200: #d5dde3; --color-slate-300: #b3c0ca;
+  --color-slate-400: #8598a8; --color-slate-500: #5b7083; --color-slate-600: #4a5f71; --color-slate-700: #33485a;
+  --color-slate-800: #1f3040; --color-slate-900: #14202b; --color-slate-950: #0c151d;
+  --color-sky-50: #f2f4f5; --color-sky-100: #e6ebee; --color-sky-200: #d5dde3; --color-sky-300: #b3c0ca;
+  --color-sky-400: #8598a8; --color-sky-500: #5b7083; --color-sky-600: #4a5f71; --color-sky-700: #33485a;
+  --color-sky-800: #1f3040; --color-sky-900: #14202b; --color-sky-950: #0c151d;
+  --color-espresso-600: #33485a; --color-espresso-700: #1f3040; --color-espresso-800: #1f3040;
+  --color-espresso-900: #14202b; --color-espresso-950: #0c151d;
+  --color-copper-50: #fbf2eb; --color-copper-100: #f6e3d6; --color-copper-200: #edc7ad; --color-copper-300: #e2a27c;
+  --color-copper-400: #d37a48; --color-copper-500: #c05a2a; --color-copper-600: #a6481f; --color-copper-700: #8a3a17;
+  --color-copper-800: #6c2d13; --color-copper-900: #6c2d13;
+  --color-fuchsia-50: #f2f4f5; --color-fuchsia-100: #e6ebee; --color-fuchsia-200: #d5dde3; --color-fuchsia-300: #b3c0ca;
+  --color-fuchsia-400: #8598a8; --color-fuchsia-500: #5b7083; --color-fuchsia-600: #4a5f71; --color-fuchsia-700: #33485a;
+  --color-fuchsia-800: #1f3040; --color-fuchsia-900: #14202b; --color-fuchsia-950: #0c151d;
+  --color-ivory: #f6eedf;
+  --font-display: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+}
+/* END-LEGACY-ALIASES */
 
-  --color-sky-50: #eef3f7;
-  --color-sky-100: #dce7ef;
-  --color-sky-200: #bfd2e0;
-  --color-sky-300: #94b3cb;
-  --color-sky-400: #6890b0;
-  --color-sky-500: #4a7597;
-  --color-sky-600: #3a5f7e;
-  --color-sky-700: #2f4e69;
-  --color-sky-800: #263f55;
-  --color-sky-900: #1e3144;
-  --color-sky-950: #14202c;
-
-  --color-espresso-600: #54402f;
-  --color-espresso-700: #3e2c20;
-  --color-espresso-800: #2c1f16;
-  --color-espresso-900: #1f1610;
-  --color-espresso-950: #17100b;
-
-  --color-copper-50: #fbf1e8;
-  --color-copper-100: #f5e0cc;
-  --color-copper-200: #ebc4a0;
-  --color-copper-300: #ddaa7c;
-  --color-copper-400: #cc8a55;
-  --color-copper-500: #b06a3b;
-  --color-copper-600: #94532b;
-  --color-copper-700: #7a4323;
-  --color-copper-800: #5f341c;
-  --color-copper-900: #452615;
-  --color-fuchsia-50: #faf0ee;
-  --color-fuchsia-100: #f4e0dc;
-  --color-fuchsia-200: #e9c6c0;
-  --color-fuchsia-300: #d9a59d;
-  --color-fuchsia-400: #c2847b;
-  --color-fuchsia-500: #a8665d;
-  --color-fuchsia-600: #8f4f47;
-  --color-fuchsia-700: #763f39;
-  --color-fuchsia-800: #5e3430;
-  --color-fuchsia-900: #4a2b28;
-  --color-fuchsia-950: #2d1917;
-
-  --color-ivory: #fbf8f1;
-
-  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+html {
+  scroll-padding-top: 5.5rem;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
   line-height: 1.5;
+}
+
+/* One focus treatment everywhere; components only override the colour on ink. */
+:focus-visible {
+  outline: 2px solid var(--color-rufous-500);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--color-rufous-200);
+  color: var(--color-ink-950);
+}
+
+/* Figures line up in every table, ledger and input. */
+.figure {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Dimension line: a measured length with end ticks, as on a drawing. */
+.dimension {
+  position: relative;
+  height: 0.625rem;
+}
+.dimension::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: 50%;
+  border-top: 1px solid var(--color-ink-200);
+}
+.dimension > span {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  border-inline: 1.5px solid currentColor;
+}
+.dimension > span::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: 50%;
+  border-top: 1.5px solid currentColor;
+  transform: translateY(-50%);
+}
+
+/* Fine survey grid behind the dark stage. */
+.survey-grid {
+  background-image:
+    linear-gradient(to right, rgb(255 255 255 / 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.045) 1px, transparent 1px);
+  background-size: 2.5rem 2.5rem;
+}
+
+/* A stage entering after navigation: one short settle, nothing on scroll. */
+@keyframes stage-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.stage-in {
+  animation: stage-in 260ms var(--ease-out-quart);
 }
 
 /* The tour frame's aspect ratio and height cap would otherwise shrink it when
@@ -130,6 +219,13 @@ body {
   height: 100%;
   border-radius: 0;
   border: 0;
+}
+
+details > summary {
+  list-style: none;
+}
+details > summary::-webkit-details-marker {
+  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
