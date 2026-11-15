@@ -32,6 +32,18 @@ describe("shared synthetic contracts", () => {
   it.each(Object.values(f.errors))("parses safe failure fixtures", (data) =>
     expect(apiResponse(AnalysisResponse).safeParse(data).success).toBe(true),
   );
+  it("accepts additive verification proof only with a completed verifier receipt", () => {
+    const x = structuredClone(f.analysis);
+    if (x.status !== "complete") throw Error("fixture");
+    const verified = { ...x, execution: { ...x.execution, verification: {
+      status: "verified", method: "bound_claims_v1", submissionAttempts: 2, correctionAttempts: 1,
+    } } };
+    expect(AnalysisResponse.safeParse(verified).success).toBe(false);
+    verified.execution.completedTools.push({ name: "verifyAnalysis", toolCallId: "verified-receipt", evidenceIds: [] });
+    expect(AnalysisResponse.safeParse(verified).success).toBe(true);
+    verified.execution.verification.correctionAttempts = 0;
+    expect(AnalysisResponse.safeParse(verified).success).toBe(false);
+  });
   it("parses catalog layers and comparison states", () => {
     Property.parse(f.property);
     [f.spatial, f.missingImagery, f.mismatchedSpatial].forEach((x) =>

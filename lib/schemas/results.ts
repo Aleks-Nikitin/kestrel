@@ -246,6 +246,12 @@ export const AnalysisComplete = z.strictObject({
       propertyMode: Property.shape.dataMode,
       spatialMode: SpatialContext.shape.dataMode,
     }),
+    verification: z.strictObject({
+      status: z.literal("verified"),
+      method: z.literal("bound_claims_v1"),
+      submissionAttempts: z.number().int().min(1).max(2),
+      correctionAttempts: z.number().int().min(0).max(1),
+    }).refine(v => v.correctionAttempts === v.submissionAttempts - 1, "Verification attempts must agree").optional(),
   }),
 });
 export const AnalysisNeedsInput = z.strictObject({
@@ -269,6 +275,8 @@ export const AnalysisResponse = z
     if (s.spatial.propertyId !== s.property.id)
       ctx.addIssue({ code: "custom", message: "Spatial property mismatch" });
     if (s.status !== "complete") return;
+    if (s.execution.verification && !s.execution.completedTools.some(t => t.name === "verifyAnalysis"))
+      ctx.addIssue({code:"custom",message:"Verification requires a completed verifier tool result"});
     const refs = new Set(
       s.comparison.results.flatMap((r) =>
         Object.keys(FinancialResult.shape)
