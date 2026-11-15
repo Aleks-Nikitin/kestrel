@@ -16,7 +16,7 @@ export function LoadingPanel({
     <div
       role="status"
       aria-live="polite"
-      className="rounded-lg border border-slate-200 bg-white p-4"
+      className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
     >
       <div className="flex items-center justify-between gap-3">
         <p className="flex items-center gap-2 text-sm font-medium text-slate-700">
@@ -74,7 +74,7 @@ export function ErrorPanel({
   return (
     <div
       role="alert"
-      className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-900"
+      className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-900"
     >
       <p className="flex items-center gap-2 text-sm font-semibold">
         <AlertTriangle className="size-4" aria-hidden />

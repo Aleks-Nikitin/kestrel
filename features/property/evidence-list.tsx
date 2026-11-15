@@ -22,7 +22,7 @@ export function EvidenceList({
         {evidence.map((e) => (
           <li key={e.id} className="rounded bg-slate-50 p-2">
             <div className="flex flex-wrap items-center gap-2">
-              <code className="text-xs text-slate-800">{e.id}</code>
+              <code className="min-w-0 text-xs text-slate-800 [overflow-wrap:anywhere]">{e.id}</code>
               <ProvenanceChip kind={providerKind(e.provider)} />
               <Pill>{e.kind}</Pill>
               {e.synthetic ? <ProvenanceChip kind="synthetic" /> : null}
