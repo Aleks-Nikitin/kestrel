@@ -2,13 +2,8 @@ import type { AnalysisResponseDTO } from "@/lib/contracts";
 
 type Complete = Extract<AnalysisResponseDTO, { status: "complete" }>;
 
-/**
- * View-model for the investigation panel. Every field is read from the
- * AnalysisResponse the backend returned, or counted from it. Nothing here is
- * inferred, simulated or scored, and nothing is called "verified": the
- * contract currently carries no verifier result, so `verification` is always
- * null until the backend exposes one (see INVESTIGATION.md).
- */
+/** Display-only projection of actual tool receipts, cited support and optional
+ * deterministic verification. It never invents per-claim verdicts or reasons. */
 export interface ToolStep {
   toolCallId: string;
   name: string;
@@ -41,8 +36,8 @@ export interface Investigation {
   elapsedMs: number;
   requestId: string;
   dataMode: Complete["execution"]["dataMode"];
-  /** Not in the contract yet: no verification state is ever shown. */
-  verification: null;
+  /** Successful bound-claim receipt only; absent on legacy responses. */
+  verification: NonNullable<Complete["execution"]["verification"]> | null;
 }
 
 export function toolLabel(name: string): string {
@@ -91,6 +86,6 @@ export function buildInvestigation(response: Complete): Investigation {
     elapsedMs: response.execution.elapsedMs,
     requestId: response.execution.requestId,
     dataMode: response.execution.dataMode,
-    verification: null,
+    verification: response.execution.verification ?? null,
   };
 }

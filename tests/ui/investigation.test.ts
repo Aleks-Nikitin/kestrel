@@ -1,3 +1,6 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { InvestigationPanel } from "../../features/analysis/investigation-panel";
 import { describe, expect, it } from "vitest";
 import { buildInvestigation, toolLabel } from "../../features/analysis/investigation";
 import { analysis, fallbackAnalysis } from "../fixtures/contracts";
@@ -19,6 +22,18 @@ describe("investigation view-model", () => {
 
   it("never reports a verification result the contract does not carry", () => {
     expect(buildInvestigation(complete()).verification).toBeNull();
+  });
+
+  it.each([0, 1] as const)("shows only the actual successful receipt with %s corrections", correctionAttempts => {
+    const r = complete();
+    r.execution.verification = { status: "verified", method: "bound_claims_v1", submissionAttempts: correctionAttempts + 1, correctionAttempts };
+    const i = buildInvestigation(r);
+    expect(i.verification).toEqual(r.execution.verification);
+    const html = renderToStaticMarkup(createElement(InvestigationPanel, { investigation: i }));
+    expect(html).toContain("Bound claims verified");
+    expect(html).not.toContain("Not reported for this run");
+    expect(html).toContain("Per-claim verdicts and correction reasons are not reported");
+    expect(html).toContain(`${correctionAttempts} corrective attempt`);
   });
 
   it("flags evidence ids that are not in the evidence table instead of inventing them", () => {

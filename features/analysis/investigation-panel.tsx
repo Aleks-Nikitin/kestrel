@@ -7,7 +7,7 @@ import type { Investigation } from "./investigation";
  * What the backend reports about how an analysis was produced: the tool calls
  * it completed, the evidence they touched, and how many claims cite support.
  * It is not a transcript or a reasoning timeline, and it does not mark any
- * claim "verified": the backend returns no verifier result yet.
+ * claim independently true: the receipt establishes deterministic consistency.
  */
 export function InvestigationPanel({ investigation: i }: { investigation: Investigation }) {
   return (
@@ -99,12 +99,22 @@ export function InvestigationPanel({ investigation: i }: { investigation: Invest
         </div>
 
         <div className="rounded-lg bg-slate-50 p-3 text-sm" data-testid="verification-status">
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-700">Independent verification</h4>
-          <p className="mt-1 text-slate-800">Not reported for this run.</p>
-          <p className="mt-1 text-xs text-slate-600">
-            The backend returned no verifier result, so no claim here is marked verified, and no correction is
-            claimed. Financial figures are the deterministic calculator&apos;s, shown unchanged.
-          </p>
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-700">Deterministic consistency checks</h4>
+          {i.verification ? (
+            <>
+              <p className="mt-1 font-medium text-emerald-800">Bound claims verified against retrieved evidence and screening policy.</p>
+              <p className="mt-1 text-xs text-slate-700">
+                {i.verification.submissionAttempts} submission{i.verification.submissionAttempts === 1 ? "" : "s"} · {i.verification.correctionAttempts} corrective attempt{i.verification.correctionAttempts === 1 ? "" : "s"}
+              </p>
+              <p className="mt-1 text-xs text-slate-600">
+                This checks consistency, not independent market truth, legal permission or structural suitability.
+                Per-claim verdicts and correction reasons are not reported.
+              </p>
+            </>
+          ) : (
+            <p className="mt-1 text-slate-800">Not reported for this run. No verification or correction is claimed.</p>
+          )}
+          <p className="mt-1 text-xs text-slate-600">Financial figures come from the deterministic calculator and are shown unchanged.</p>
         </div>
       </div>
 
