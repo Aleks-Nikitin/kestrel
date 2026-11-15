@@ -20,6 +20,8 @@ The application uses root-level `app/`, shared `lib/`, `features/` and `componen
 
 Use `npm run typecheck`, `npm run lint`, `npm run test:unit`, `npm run test:integration` and `npm run build`. `npm run test:e2e` verifies mocked frontend behavior separately from live sponsor/model tests. Mocked fixtures do not establish real integration. Missing live prerequisites fail rather than silently skip.
 
+Independent local verification covers property/spatial matching and deterministic comparison, including the budget-driven preference change. Recording verification remains open: the latest independent Matterport iframe attempt aborted after earlier successful interactive tours, and independent verification of Gemini analysis is pending. Do not describe the entire demonstration as independently verified.
+
 Keep credentials, sponsor records, local authority documents and raw model indexes out of Git, browser static assets and build artifacts. Do not expose server credentials through `NEXT_PUBLIC_` variables. The development server (`npm run dev`) does not automatically enable the reviewed demo's permission flags; use the local demo launcher for judging.
 
 ## Framework credits
