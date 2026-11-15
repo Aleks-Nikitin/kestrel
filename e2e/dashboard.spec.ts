@@ -63,8 +63,12 @@ test("synthetic data is labeled and selection shows facts, units and spatial evi
   ).toBeFocused();
   await expect(page.getByText("10,000 sq ft").first()).toBeVisible();
   await expect(page.getByText("Unknown — not supplied").first()).toBeVisible();
-  await expect(page.getByText("Width (m)")).toBeVisible();
-  await expect(page.getByText(/Floor area \(m²\)/)).toBeVisible();
+  const sourceValues = page.getByRole("region", { name: "Room source values" });
+  await expect(sourceValues).toBeHidden();
+  await page.getByText("Source room IDs and values as supplied", { exact: true }).click();
+  await expect(sourceValues).toBeVisible();
+  await expect(sourceValues.getByRole("columnheader", { name: "Width (m)", exact: true })).toBeVisible();
+  await expect(sourceValues.getByRole("columnheader", { name: "Model floor area (m²)", exact: true })).toBeVisible();
 });
 
 test("analysis result renders canonical values and stays labeled synthetic", async ({
@@ -77,7 +81,7 @@ test("analysis result renders canonical values and stays labeled synthetic", asy
   await page.getByRole("group", { name: "Analysis actions" }).getByRole("button", { name: "Analyze" }).click();
   await expect(page.getByTestId("analysis-complete")).toBeVisible();
   await expect(page.getByText("$195,000 / yr").first()).toBeVisible();
-  await expect(page.getByText("Run data: Synthetic")).toBeVisible();
+  await expect(page.getByTestId("investigation-panel").getByText("Run data: Synthetic")).toBeVisible();
   await expect(page.getByTestId("investment-summary")).toBeVisible();
 });
 
