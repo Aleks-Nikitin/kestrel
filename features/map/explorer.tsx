@@ -132,7 +132,7 @@ export function Explorer({
         </fieldset>
         {mode === "3d" && tour.status === "available" ? (
           <div className="flex flex-wrap items-center gap-2" data-testid="tour-actions">
-            {canFullscreen ? (
+            {canFullscreen && !isFullscreen ? (
               <button type="button" onClick={toggleFullscreen} className={ACTION}>
                 {isFullscreen ? <Minimize2 className="size-4" aria-hidden /> : <Maximize2 className="size-4" aria-hidden />}
                 {isFullscreen ? "Exit full screen" : "Full screen"}
@@ -167,6 +167,11 @@ export function Explorer({
             data-tour-frame
             className="relative z-10 h-[min(72vh,36rem)] min-h-96 w-full overflow-hidden rounded-2xl border border-slate-300 bg-espresso-950 shadow-md sm:h-[min(78vh,48rem)] lg:h-[clamp(36rem,82vh,62rem)]"
           >
+            {isFullscreen ? (
+              <button type="button" onClick={toggleFullscreen} className={"absolute left-3 top-3 z-30 " + ACTION}>
+                <Minimize2 className="size-4" aria-hidden /> Exit full screen
+              </button>
+            ) : null}
             <div className="absolute inset-0">
               <TourPanel tour={tour} title={tourTitle} onBack={() => setMode("2d")} />
             </div>

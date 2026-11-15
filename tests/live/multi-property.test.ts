@@ -49,9 +49,13 @@ it("selects every approved real property, preserves its spatial identity and cle
         const dollhouse = scene.locator('[aria-label*="Dollhouse"]:visible,[title*="Dollhouse"]:visible,[aria-label*="dollhouse"]:visible,[title*="dollhouse"]:visible').first();
         stage = "embedded-dollhouse";
         await dollhouse.waitFor({ state: "visible", timeout: 45000 });
+        await dollhouse.click();
+        stage = "embedded-walk";
+        const walk = scene.getByRole("button", { name: /3D\s*space/i }).first();
+        if (await walk.isVisible()) await walk.click();
+        await page.waitForTimeout(1000);
         if (ordinal === 1 && process.env.KESTREL_PRIVATE_VISUAL_CHECK === "true")
           await iframe.screenshot({ path: "/private/tmp/kestrel-catalog-upright.png" });
-        await dollhouse.click();
         const full = page.getByRole("button", { name: "Full screen", exact: true });
         if (await full.isVisible()) {
           stage = "fullscreen-enter";
