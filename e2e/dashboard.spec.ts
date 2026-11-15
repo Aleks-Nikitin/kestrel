@@ -84,7 +84,10 @@ test("analysis result renders canonical values and stays labeled synthetic", asy
   await page.getByRole("group", { name: "Analysis actions" }).getByRole("button", { name: "Analyze" }).click();
   await expect(page.getByTestId("analysis-complete")).toBeVisible();
   await expect(page.getByText("$195,000 / yr").first()).toBeVisible();
-  await expect(page.getByTestId("investigation-panel").getByText("Run data: Synthetic")).toBeVisible();
+  // Run metadata lives in the Technical audit, closed by default.
+  await expect(page.getByTestId("investigation-panel")).toBeHidden();
+  await page.getByTestId("technical-audit").locator("summary").first().click();
+  await expect(page.getByTestId("investigation-panel").getByText("Data sources: Synthetic")).toBeVisible();
   await expect(page.getByTestId("investment-summary")).toBeVisible();
 });
 

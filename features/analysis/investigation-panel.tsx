@@ -65,7 +65,7 @@ export function InvestigationPanel({ investigation: i }: { investigation: Invest
         >
           <h4 className="flex items-center gap-1.5 text-xs font-semibold text-ink-700">
             {i.verification ? <ShieldCheck className="size-4 text-spruce-800" aria-hidden /> : <Info className="size-4" aria-hidden />}
-            Deterministic consistency checks
+            Checked against retrieved inputs and deterministic calculations
           </h4>
           {i.verification ? (
             <>
@@ -130,7 +130,7 @@ export function InvestigationPanel({ investigation: i }: { investigation: Invest
       <p className="mt-1 text-xs text-ink-600">Listed in the order the backend returned them; not a timeline.</p>
 
       <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-600">
-        <DataModeBadge mode={i.dataMode} prefix="Run data" />
+        {i.dataMode === "mixed" ? <Pill>Mixed data sources</Pill> : <DataModeBadge mode={i.dataMode} prefix="Data sources" />}
         <span>
           Model {i.model.id} ({i.model.provider}){i.model.fallbackUsed ? " — fallback model used" : ""} ·{" "}
           {i.model.attempts} model {i.model.attempts === 1 ? "attempt" : "attempts"} · {i.elapsedMs} ms

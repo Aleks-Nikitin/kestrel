@@ -172,13 +172,8 @@ export function AnalysisPanel({
         ) : null}
         {analysis.status === "ready" ? (
           <div className="space-y-3">
-            {shownAction ? (
-              <p className="text-xs font-medium uppercase tracking-wide text-ink-600">
-                Action: {ACTION_LABEL[shownAction]}
-              </p>
-            ) : null}
-            <AnalysisResult response={analysis.data} stale={stale} />
-            {analysis.data.status === "needs_input" ? (
+            <AnalysisResult response={analysis.data} stale={stale} action={shownAction} />
+            {analysis.data.status === "needs_input" && !stale ? (
               <button type="button" className={buttonQuiet} onClick={editInputs}>
                 Edit scenario inputs
               </button>

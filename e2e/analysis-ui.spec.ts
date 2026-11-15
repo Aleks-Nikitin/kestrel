@@ -56,7 +56,7 @@ test("each action needs no typed prompt and sends the editor scenarios", async (
   expect(body.scenarios).toHaveLength(3);
   expect(body.propertyId).toBe(propertyId);
   expect("question" in body).toBe(false);
-  await expect(page.getByText("Action: Risks")).toBeVisible();
+  await expect(page.getByTestId("memo-focus")).toContainText("Focused view: Risks");
 });
 
 test("the optional question is sent and trimmed", async ({ page }) => {
@@ -75,7 +75,11 @@ test("completed tools and evidence are shown after the response; facts and uncer
   await open(page);
   await action(page, "Summary").click();
   await expect(page.getByTestId("investment-summary")).toBeVisible();
-  await expect(page.getByText(/Tools completed:/)).toBeVisible();
+  // Plain-language activity by default; the real tool records are in the audit.
+  await expect(page.getByTestId("memo-activity")).toContainText("Calculated the scenario comparison");
+  await expect(page.getByTestId("memo-activity")).not.toContainText("runComparison");
+  await page.getByTestId("technical-audit").locator("summary").first().click();
+  await expect(page.getByTestId("tool-step").first()).toContainText("runComparison");
   await expect(page.getByRole("list", { name: "Supporting evidence" }).first()).toBeVisible();
 });
 
@@ -164,4 +168,65 @@ test("a slow request shows loading with cancel and no invented progress stages",
   await expect(page.getByRole("status").filter({ hasText: /Running analyze/i })).toBeVisible();
   await page.getByRole("button", { name: /Cancel/ }).click();
   await expect(page.getByText("No analysis has been run yet.")).toBeVisible();
+});
+
+for (const [name, title] of [["Analyze", "Full analysis"], ["Compare", "Comparison"], ["Risks", "Risks"], ["Explain", "Explanation"], ["Summary", "Summary"]] as const)
+  test(`${name} renders the memo from the returned payload with its own emphasis`, async ({ page }) => {
+    const requests = await mock(page);
+    await open(page);
+    await action(page, name).click();
+    const memo = page.getByTestId("investment-summary");
+    await expect(memo).toBeVisible();
+    expect(AnalysisRequest.parse(requests[0]).action).toBe(name.toLowerCase());
+    await expect(page.getByTestId("memo-focus")).toContainText(`Focused view: ${title}`);
+    // Same result for every action: decision, rounded figures, verification scope, sources.
+    await expect(memo).toContainText("alternative-b");
+    await expect(memo).toContainText("$195,000 / yr");
+    await expect(memo).toContainText("$450,000");
+    await expect(memo).toContainText("6 years");
+    await expect(memo.getByTestId("memo-verification")).toContainText("No verification receipt for this run");
+    await expect(memo.getByTestId("memo-verification")).toContainText("No per-statement verdict is reported");
+    await expect(memo.getByTestId("memo-sources")).toContainText("Data sources: property synthetic, spatial synthetic");
+    // No raw debug output in the investor view.
+    await expect(memo).not.toContainText("synthetic-call");
+    await expect(memo).not.toContainText("NOT_APPLICABLE");
+    await expect(memo).not.toContainText("finance.v1");
+    const first = await memo.locator("[data-memo-section]").nth(1).getAttribute("data-memo-section");
+    expect(first).toBe({ Analyze: "memo-rationale", Compare: "memo-ranking", Risks: "memo-risks", Explain: "memo-rationale", Summary: "memo-risks" }[name]);
+  });
+
+test("a finding shared by every scenario is listed once and the audit expands without any request", async ({ page }) => {
+  await mock(page);
+  await open(page);
+  await action(page, "Risks").click();
+  const memo = page.getByTestId("investment-summary");
+  await expect(memo).toBeVisible();
+  await expect(memo.getByText("Synthetic; legal feasibility unverified")).toHaveCount(1);
+  let calls = 0;
+  page.on("request", (q) => {
+    if (new URL(q.url()).pathname.startsWith("/api/")) calls += 1;
+  });
+  const audit = page.getByTestId("technical-audit");
+  await audit.locator("summary").first().focus();
+  await page.keyboard.press("Enter");
+  await expect(audit.getByRole("region", { name: "Exact financial values" })).toBeVisible();
+  await expect(audit).toContainText("finance.v1.");
+  await expect(audit).toContainText("synthetic-call");
+  await expect(audit).toContainText("Not reported for this run");
+  expect(calls).toBe(0);
+});
+
+test("a stale analysis shows only that it needs updating", async ({ page }) => {
+  await mock(page);
+  await open(page);
+  await action(page, "Analyze").click();
+  await expect(page.getByTestId("investment-summary")).toBeVisible();
+  await openStage(page, "Underwriting");
+  await page.getByRole("tab", { name: /Alternative B/ }).click();
+  await page.getByLabel(/^Annual rent/).fill("20");
+  await openStage(page, "Investigation");
+  await expect(page.getByTestId("analysis-stale")).toContainText("Analysis needs updating");
+  for (const id of ["analysis-complete", "investment-summary", "memo-verification", "technical-audit", "investigation-panel"])
+    await expect(page.getByTestId(id)).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Investigation", exact: true })).not.toContainText("$195,000");
 });
