@@ -93,6 +93,19 @@ export function ComparisonView({
   const synthetic = response.evidence.some((e) => e.synthetic);
   const concl = CONCLUSION[comparison.conclusion];
   const preferredId = comparison.preferredScenarioId;
+  const proposedUse = scenarios.find((s) => s.id === preferredId)?.proposedUse;
+  // The server reports checks per scenario. Group identical explanations only
+  // for presentation, retaining their scope and the original response unchanged.
+  const reasons = new Map<string, { text: string; scenarioIds: Set<string> }>();
+  for (const reason of comparison.reasons) {
+    const key = JSON.stringify([reason.code, reason.text]);
+    const existing = reasons.get(key);
+    if (existing) {
+      for (const id of reason.scenarioIds) existing.scenarioIds.add(id);
+    } else {
+      reasons.set(key, { text: reason.text, scenarioIds: new Set(reason.scenarioIds) });
+    }
+  }
   const preferredResult = comparison.results.find((r) => r.scenarioId === preferredId);
   const dark = concl.dark;
   const prevPreferredId = previous?.comparison.preferredScenarioId ?? null;
@@ -134,9 +147,11 @@ export function ComparisonView({
             {preferredId ? (
               <>
                 <p className={cn("type-display mt-3 text-5xl sm:text-6xl", dark ? "text-buff-100" : "text-ink-950")}>{name(preferredId)}</p>
-                <p className={cn("mt-2 text-base", dark ? "text-ink-200" : "text-ink-600")}>
-                  {scenarios.find((s) => s.id === preferredId)?.proposedUse}
-                </p>
+                {proposedUse && proposedUse.trim() !== name(preferredId).trim() ? (
+                  <p className={cn("mt-2 text-base", dark ? "text-ink-200" : "text-ink-600")}>
+                    {proposedUse}
+                  </p>
+                ) : null}
               </>
             ) : (
               <p className="type-display mt-3 text-4xl sm:text-5xl">No scenario is preferred</p>
@@ -147,8 +162,15 @@ export function ComparisonView({
                   Why (from the deterministic comparison)
                 </p>
                 <ul className={cn("mt-1.5 max-w-prose space-y-1.5 font-serif text-[1.05rem] leading-relaxed", dark ? "text-white" : "text-ink-900")}>
-                  {comparison.reasons.map((r) => (
-                    <li key={r.code}>{r.text}</li>
+                  {Array.from(reasons, ([key, reason]) => (
+                    <li key={key}>
+                      {reason.text}
+                      {reason.scenarioIds.size > 0 && !scenarios.every((s) => reason.scenarioIds.has(s.id)) ? (
+                        <span className="block font-sans text-xs opacity-80">
+                          Applies to: {Array.from(reason.scenarioIds, name).join(", ")}
+                        </span>
+                      ) : null}
+                    </li>
                   ))}
                 </ul>
               </div>
