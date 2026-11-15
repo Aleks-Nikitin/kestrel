@@ -6,6 +6,8 @@ import { describeMissing } from "@/features/scenarios/readiness";
 import { DataModeBadge, OriginBadge, Pill } from "@/components/kestrel/badges";
 import { ProvenanceChip, ProvenanceLegend, providerKind } from "@/components/kestrel/provenance";
 import { Lightbulb, TriangleAlert } from "lucide-react";
+import { buildInvestigation } from "./investigation";
+import { InvestigationPanel } from "./investigation-panel";
 import { formatByUnit } from "@/features/dashboard/format";
 
 type Complete = Extract<AnalysisResponseDTO, { status: "complete" }>;
@@ -179,6 +181,8 @@ export function AnalysisResult({
           </p>
         ) : null}
       </div>
+
+      {!stale ? <InvestigationPanel investigation={buildInvestigation(response)} /> : null}
 
       {!stale ? (
         <div data-testid="investment-summary" className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
