@@ -66,10 +66,15 @@ export interface ScenarioEditor {
 export function useScenarioEditor(
   property: PropertyDTO | null,
   selectedId: string | null,
+  /**
+   * The calendar year the stabilized period starts in. Read from the clock in
+   * the selection handler, never while rendering, so prerendering and
+   * hydration see no time-dependent value; null until a property is chosen.
+   */
+  year: number | null,
   inputRevision: number,
   onEdited: () => void,
 ): ScenarioEditor | null {
-  const [year] = useState(() => new Date().getFullYear());
   const [stored, setStored] = useState<Session | null>(null);
 
   let session = stored;
@@ -77,7 +82,7 @@ export function useScenarioEditor(
     session = null;
     setStored(null);
   }
-  if (property && property.id === selectedId && !session) {
+  if (property && property.id === selectedId && year !== null && !session) {
     session = {
       propertyId: property.id,
       model: initialModel(property, year),

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useReducer, useRef } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { KestrelMark } from "@/components/kestrel/kestrel-mark";
 import { SiteFooter } from "@/components/kestrel/site-footer";
@@ -45,6 +45,9 @@ export function Dashboard({ client = apiClient }: { client?: ApiClient }) {
   const analysisAbort = useRef<AbortController | null>(null);
   const compareAbort = useRef<AbortController | null>(null);
   const focusDetail = useRef(false);
+  // Scenario periods start in the year the property was chosen; the clock is
+  // read in that event handler only, so rendering stays deterministic.
+  const [periodYear, setPeriodYear] = useState<number | null>(null);
 
   // Catalog
   useEffect(() => {
@@ -112,6 +115,7 @@ export function Dashboard({ client = apiClient }: { client?: ApiClient }) {
 
   const select = useCallback((id: string) => {
     focusDetail.current = true;
+    setPeriodYear(new Date().getFullYear());
     dispatch({ type: "select", propertyId: id });
   }, []);
 
@@ -214,7 +218,7 @@ export function Dashboard({ client = apiClient }: { client?: ApiClient }) {
     dispatch({ type: "analysis_cancelled" });
   }, []);
 
-  const editor = useScenarioEditor(property, state.selectedId, state.inputRevision, onEdited);
+  const editor = useScenarioEditor(property, state.selectedId, periodYear, state.inputRevision, onEdited);
 
   // Submitting is the step from underwriting to comparison: valid drafts are
   // sent and the result stage opens; invalid drafts stay put and are marked.
