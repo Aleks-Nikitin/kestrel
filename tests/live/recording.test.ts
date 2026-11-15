@@ -17,13 +17,25 @@ it("completes the recording scenario with editor-built disclosed assumptions and
  const analysis=apiResponse(AnalysisResponse).parse(await post("/api/v1/analysis",{...input,action:"analyze"}));if(!analysis.ok)throw Error(`Analysis failed: ${analysis.error.code}`);
  expect(analysis.data.status==="complete").toBe(true);if(analysis.data.status!=="complete")throw Error("Recording analysis still needs inputs.");
  expect(JSON.stringify(analysis.data.comparison)===JSON.stringify(comparison.data.comparison)).toBe(true);
- expect(analysis.data.execution.completedTools.some(t=>t.name==="runComparison")).toBe(true);
+ const completedTools=analysis.data.execution.completedTools;
+ expect(["runComparison","verifyAnalysis"].every(name=>completedTools.some(t=>t.name===name))).toBe(true);
+ expect(analysis.data.execution.verification?.status==="verified").toBe(true);
  const lower=structuredClone(input);lower.inputRevision++;lower.constraints.maxInitialInvestment.value="1000000";
  const edited=apiResponse(ComparisonResponse).parse(await post("/api/v1/scenarios/compare",lower));if(!edited.ok)throw Error(`Edited comparison failed: ${edited.error.code}`);
  expect(edited.data.comparison.preferredScenarioId==="alternative-a").toBe(true);
+ const revised=apiResponse(AnalysisResponse).parse(await post("/api/v1/analysis",{...lower,action:"analyze"}));
+ if(!revised.ok)throw Error(`Revised analysis failed: ${revised.error.code}`);
+ expect(revised.data.status==="complete").toBe(true);
+ if(revised.data.status!=="complete")throw Error("Budget-change analysis still needs inputs.");
+ expect(revised.data.execution.verification?.status==="verified").toBe(true);
+ expect(revised.data.summary.preferredScenarioId==="alternative-a").toBe(true);
+ expect(revised.data.comparison.feasibility.find(f=>f.scenarioId==="alternative-b")?.eligibility==="excluded").toBe(true);
+ expect(JSON.stringify(revised.data.comparison)===JSON.stringify(edited.data.comparison)).toBe(true);
+ expect(revised.data.inputRevision===lower.inputRevision&&revised.data.execution.requestId!==analysis.data.execution.requestId).toBe(true);
+ expect([analysis.data,revised.data].every(a=>a.modelUsage.provider==="gemini"&&a.modelUsage.attempts<=8)).toBe(true);
  if(process.env.KESTREL_SAVE_RECORDING==="true"){
   await mkdir("sponsor-data/runtime",{recursive:true});
   for(const [file,data]of Object.entries({"recording-scenarios.json":input,"recording-editor-model.json":model,"recording-results.json":{comparison:comparison.data,analysis:analysis.data,edited:edited.data}}))await writeFile("sponsor-data/runtime/"+file,JSON.stringify(data,null,2),{mode:0o600});
  }
- console.info("Recording path verified",{complete:true,canonicalMatch:true,budgetAdaptation:true,model:analysis.data.modelUsage.modelId,elapsedMs:analysis.data.execution.elapsedMs});
+ console.info("Recording path verified",{complete:true,canonicalMatch:true,budgetAdaptation:true,model:analysis.data.modelUsage.modelId,attempts:[analysis.data.modelUsage.attempts,revised.data.modelUsage.attempts],corrections:[analysis.data.execution.verification?.correctionAttempts,revised.data.execution.verification?.correctionAttempts],elapsedMs:[analysis.data.execution.elapsedMs,revised.data.execution.elapsedMs]});
 },90000);

@@ -16,13 +16,23 @@ Gemini uses `gemini-3.1-flash-lite`. OpenRouter is optional and stays disabled u
 
 ## Development and verification
 
-The application uses root-level `app/`, shared `lib/`, `features/` and `components/`. Shared Zod contracts validate requests and responses. Decimal.js owns canonical financial calculations and rankings; components display server results. The agent executes native planning and typed property, scenario and comparison tools with request isolation and bounded attempts.
+The application uses root-level `app/`, shared `lib/`, `features/` and `components/`. Shared Zod contracts validate requests and responses. Decimal.js owns canonical financial calculations and rankings; components display server results. The agent executes native planning and typed property, scenario, comparison and analysis-verification tools with request isolation and bounded attempts.
 
 Use `npm run typecheck`, `npm run lint`, `npm run test:unit`, `npm run test:integration` and `npm run build`. `npm run test:e2e` verifies mocked frontend behavior separately from live sponsor/model tests. Mocked fixtures do not establish real integration. Missing live prerequisites fail rather than silently skip.
 
 Independent local verification covers property/spatial matching and deterministic comparison, including the budget-driven preference change. Recording verification remains open: the latest independent Matterport iframe attempt aborted after earlier successful interactive tours, and independent verification of Gemini analysis is pending. Do not describe the entire demonstration as independently verified.
 
 Keep credentials, sponsor records, local authority documents and raw model indexes out of Git, browser static assets and build artifacts. Do not expose server credentials through `NEXT_PUBLIC_` variables. The development server (`npm run dev`) does not automatically enable the reviewed demo's permission flags; use the local demo launcher for judging.
+
+## Verified agent analysis
+
+Gemini selects structured facts and financial focus through the existing Deep Agents workflow. A read-only verifier checks those selections against authorized retrieved evidence, the completed comparison tool, the existing feasibility/ranking policy and explicit property/model identity. Unknown room measurements stay unknown. The model does not calculate canonical finances or change the user's constraints.
+
+Only a correctable explanation-output failure can receive one corrected submission within the same native agent run. Both submissions share the existing eight physical model attempts, sixteen tool calls and sixty-second deadline. Authentication, licensing and identity failures do not receive corrective attempts. Failed correction returns explicit analysis unavailability; the separate deterministic comparison remains available. Published explanations use checked selections and canonical templates, rather than unverified closing model prose.
+
+Successful responses optionally include `execution.verification` with method `bound_claims_v1`, submission and correction counts. This establishes consistency with the available records and screening policy; it does not certify market truth, zoning, structural suitability or an investment return. Existing frontend consumers remain compatible and already show the actual completed tools and model usage.
+
+Offline regression tests cover unsupported dimensions, incorrect financial claims, budget violations, mismatched evidence, successful correction, rejected correction and the physical model-call cap. Optional paid checks are separate: `tests/live/analysis.test.ts` checks a real native agent run, and `tests/live/recording.test.ts` checks the editor-built comparison followed by a lower-budget re-analysis through the local production API. Those tests require the owner's protected local configuration and authorized processing permissions. They never make this public repository a sponsor-data distribution channel.
 
 ## Framework credits
 
