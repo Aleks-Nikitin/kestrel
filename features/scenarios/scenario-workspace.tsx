@@ -84,7 +84,7 @@ export function ScenarioWorkspace({
     <section
       id="section-scenarios"
       aria-labelledby="scenarios-heading"
-      className="scroll-mt-16 rounded-lg border border-slate-200 bg-white p-4 sm:p-5"
+      className="scroll-mt-28 lg:scroll-mt-20 rounded-lg border border-slate-200 bg-white p-4 sm:p-5"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 id="scenarios-heading" tabIndex={-1} className="text-lg font-semibold text-slate-900 outline-none">
@@ -233,7 +233,7 @@ export function ScenarioWorkspace({
         ) : null}
       </div>
 
-      <div id="section-comparison" className="mt-6 scroll-mt-16" aria-live="polite">
+      <div id="section-comparison" className="mt-6 scroll-mt-28 lg:scroll-mt-20" aria-live="polite">
         {compare.status === "idle" ? (
           <p className="text-sm text-slate-700">No comparison has been calculated yet.</p>
         ) : null}

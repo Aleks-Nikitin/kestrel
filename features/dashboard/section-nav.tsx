@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
 export const SECTIONS = [
-  { id: "section-property", label: "Property" },
-  { id: "section-spatial", label: "Spatial evidence" },
+  { id: "section-property", label: "Overview" },
+  { id: "section-spatial", label: "Spatial intelligence" },
   { id: "section-scenarios", label: "Scenarios" },
   { id: "section-comparison", label: "Comparison" },
   { id: "section-analysis", label: "Agent analysis" },
@@ -48,11 +48,8 @@ export function SectionNav({ available }: { available: string[] }) {
   }
 
   return (
-    <nav
-      aria-label="Page sections"
-      className="sticky top-0 z-30 -mx-4 border-b border-slate-200 bg-white/90 px-4 backdrop-blur sm:-mx-6 sm:px-6"
-    >
-      <ol className="flex gap-1 overflow-x-auto py-2 text-sm [scrollbar-width:none]">
+    <nav aria-label="Page sections" className="min-w-0 basis-full lg:basis-auto lg:flex-1">
+      <ol className="flex gap-1 overflow-x-auto text-sm [scrollbar-width:none] lg:justify-end">
         {SECTIONS.map((s, i) => {
           const on = available.includes(s.id);
           return (
@@ -63,18 +60,18 @@ export function SectionNav({ available }: { available: string[] }) {
                   onClick={(e) => go(e, s.id)}
                   aria-current={active === s.id ? "location" : undefined}
                   className={cn(
-                    "inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-medium focus-visible:outline-2 focus-visible:outline-sky-600",
+                    "relative inline-flex min-h-10 items-center gap-1.5 rounded-md px-3 font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-copper-300",
                     active === s.id
-                      ? "bg-slate-900 text-white"
-                      : "text-slate-700 hover:bg-slate-100",
+                      ? "bg-espresso-700 text-ivory after:absolute after:inset-x-3 after:bottom-1 after:h-0.5 after:rounded-full after:bg-copper-400"
+                      : "text-ivory/75 hover:bg-espresso-800 hover:text-ivory",
                   )}
                 >
-                  <span className="text-xs opacity-70" aria-hidden>{i + 1}</span>
+                  <span className="text-xs tabular-nums text-copper-300" aria-hidden>{i + 1}</span>
                   {s.label}
                 </a>
               ) : (
-                <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-slate-500" aria-disabled="true">
-                  <span className="text-xs opacity-70" aria-hidden>{i + 1}</span>
+                <span className="inline-flex min-h-10 items-center gap-1.5 rounded-md px-3 text-ivory/40" aria-disabled="true">
+                  <span className="text-xs tabular-nums" aria-hidden>{i + 1}</span>
                   {s.label}
                 </span>
               )}

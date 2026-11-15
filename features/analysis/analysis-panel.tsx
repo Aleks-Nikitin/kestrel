@@ -63,7 +63,7 @@ export function AnalysisPanel({
     <section
       id="section-analysis"
       aria-labelledby="analysis-heading"
-      className="scroll-mt-16 rounded-lg border border-slate-200 bg-white p-4 sm:p-5"
+      className="scroll-mt-28 lg:scroll-mt-20 rounded-lg border border-slate-200 bg-white p-4 sm:p-5"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 id="analysis-heading" className="text-lg font-semibold">

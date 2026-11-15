@@ -198,7 +198,7 @@ export function PropertyMap({
           role="region"
           aria-label="Map of properties. The property list offers the same selection."
           data-testid="property-map"
-          className="relative h-72 overflow-hidden rounded-lg border border-slate-200 bg-slate-200 sm:h-96"
+          className="relative h-80 overflow-hidden rounded-2xl border border-slate-200 bg-slate-200 shadow-sm sm:h-[26rem] lg:h-[32rem]"
         >
           {/* MapLibre's unlayered CSS sets .maplibregl-map to position:relative,
               which beats Tailwind's layered `absolute inset-0` and collapses the

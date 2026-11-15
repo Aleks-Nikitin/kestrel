@@ -1,12 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useReducer, useRef } from "react";
-import { Building2, MapPin } from "lucide-react";
+import { Box, Calculator, ShieldCheck } from "lucide-react";
+import { KestrelMark } from "@/components/kestrel/kestrel-mark";
+import { Reveal } from "@/components/kestrel/motion";
 import { apiClient } from "@/lib/contracts/client";
 import { ErrorPanel, LoadingPanel } from "@/components/kestrel/state-panels";
 import { SyntheticBanner } from "@/components/kestrel/synthetic-banner";
 import { PropertyList } from "@/features/property/property-list";
-import { PropertyPanel } from "@/features/property/property-panel";
+import { PropertyHero, PropertyPanel } from "@/features/property/property-panel";
 import { SpatialPanel } from "@/features/property/spatial-panel";
 import { SectionNav } from "./section-nav";
 import { Explorer } from "@/features/map/explorer";
@@ -214,43 +216,45 @@ export function Dashboard({ client = apiClient }: { client?: ApiClient }) {
   const stale = isAnalysisStale(state);
   const synthetic = hasSyntheticData(state);
 
+  const navigable = state.selectedId && state.property.status === "ready";
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-4 sm:px-6">
+      <header className="sticky top-0 z-40 border-b border-espresso-700 bg-espresso-950 text-ivory">
+        <div className="mx-auto flex max-w-[90rem] flex-wrap items-center gap-x-6 gap-y-1 px-4 py-2 sm:px-6">
           <div className="flex items-center gap-3">
-            <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-slate-900 text-white" aria-hidden>
-              <Building2 className="size-5" />
-            </span>
-            <div>
-              <h1 className="text-xl font-semibold leading-tight tracking-tight">Kestrel</h1>
-              <p className="text-sm text-slate-600">See the potential in every property.</p>
+            <KestrelMark tone="light" className="size-9 shrink-0" />
+            <div className="leading-tight">
+              <h1 className="text-[15px] font-semibold uppercase tracking-[0.3em]">Kestrel</h1>
+              <p className="hidden text-xs text-ivory/65 sm:block">Commercial property intelligence</p>
             </div>
           </div>
-          <p className="max-w-md text-xs leading-relaxed text-slate-600 sm:text-right">
-            Preliminary screening — not an appraisal, zoning determination or
-            structural inspection.
-          </p>
+          {navigable ? (
+            <SectionNav
+              available={[
+                "section-property",
+                ...(state.spatial.status === "ready" ? ["section-spatial"] : []),
+                "section-scenarios",
+                "section-comparison",
+                "section-analysis",
+              ]}
+            />
+          ) : null}
         </div>
       </header>
+      <p className="border-b border-slate-200 bg-slate-100 px-4 py-1.5 text-center text-xs text-slate-600">
+        Preliminary screening — not an appraisal, zoning determination or
+        structural inspection.
+      </p>
 
-      <main className="mx-auto max-w-7xl space-y-4 px-4 py-4 sm:px-6 sm:py-6">
+      <main className="mx-auto max-w-[90rem] space-y-4 px-4 py-5 sm:px-6 sm:py-8">
         {synthetic ? <SyntheticBanner /> : null}
-        {state.selectedId && state.property.status === "ready" ? (
-          <SectionNav
-            available={[
-              "section-property",
-              ...(state.spatial.status === "ready" ? ["section-spatial"] : []),
-              "section-scenarios",
-              "section-comparison",
-              "section-analysis",
-            ]}
-          />
-        ) : null}
 
-        <div className="grid gap-6 lg:grid-cols-[19rem_1fr]">
-          <nav aria-labelledby="properties-heading" className="min-w-0">
-            <h2 id="properties-heading" className="mb-2 text-sm font-semibold text-slate-900">
+        <div className="grid gap-6 lg:grid-cols-[17rem_minmax(0,1fr)] xl:grid-cols-[18rem_minmax(0,1fr)]">
+          <nav aria-labelledby="properties-heading" className="min-w-0 lg:sticky lg:top-24 lg:self-start">
+            <h2
+              id="properties-heading"
+              className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600"
+            >
               Properties
             </h2>
             {state.catalog.status === "loading" ? (
@@ -272,31 +276,8 @@ export function Dashboard({ client = apiClient }: { client?: ApiClient }) {
             ) : null}
           </nav>
 
-          <div className="min-w-0 space-y-6" aria-live="polite">
-            {state.catalog.status === "ready" ? (
-              <Explorer
-                tour={resolveTour(state.spatial, state.selectedId)}
-                tourTitle={
-                  state.property.status === "ready"
-                    ? `3D tour of ${state.property.data.address.value ?? "selected property"}`
-                    : "3D tour"
-                }
-                properties={state.catalog.data}
-                selectedId={state.selectedId}
-                onSelect={select}
-                footprint={verifiedFootprint}
-              />
-            ) : null}
-
-            {!state.selectedId ? (
-              <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-700">
-                <MapPin className="size-6 text-slate-400" aria-hidden />
-                <p>
-                  Select a property to see its facts, spatial evidence and
-                  analysis.
-                </p>
-              </div>
-            ) : null}
+          <div className="min-w-0 space-y-8" aria-live="polite">
+            {!state.selectedId ? <Welcome /> : null}
 
             {state.selectedId && state.property.status === "loading" ? (
               <LoadingPanel label="Loading property details…" rows={5} />
@@ -309,32 +290,55 @@ export function Dashboard({ client = apiClient }: { client?: ApiClient }) {
               />
             ) : null}
             {state.property.status === "ready" ? (
-              <div id="section-property" className="scroll-mt-16">
-                <PropertyPanel property={state.property.data} />
+              <div id="section-property" className="scroll-mt-28 lg:scroll-mt-20">
+                <PropertyHero property={state.property.data} />
               </div>
             ) : null}
 
-            {state.selectedId && state.spatial.status === "loading" ? (
-              <LoadingPanel label="Loading spatial evidence…" rows={3} />
-            ) : null}
-            {state.spatial.status === "error" ? (
-              <ErrorPanel
-                what="Spatial evidence"
-                error={state.spatial.error}
-                onRetry={() => dispatch({ type: "property_retry" })}
-              />
-            ) : null}
-            {state.spatial.status === "ready" ? (
-              <div id="section-spatial" className="scroll-mt-16">
-              <SpatialPanel
-                spatial={state.spatial.data}
-                location={
-                  state.property.status === "ready"
-                    ? state.property.data.location.value
-                    : null
-                }
-              />
-              </div>
+            <div id="section-spatial" className="scroll-mt-28 space-y-6 lg:scroll-mt-20">
+              {state.catalog.status === "ready" ? (
+                <Explorer
+                  tour={resolveTour(state.spatial, state.selectedId)}
+                  tourTitle={
+                    state.property.status === "ready"
+                      ? `3D tour of ${state.property.data.address.value ?? "selected property"}`
+                      : "3D tour"
+                  }
+                  properties={state.catalog.data}
+                  selectedId={state.selectedId}
+                  onSelect={select}
+                  footprint={verifiedFootprint}
+                />
+              ) : null}
+
+              {state.selectedId && state.spatial.status === "loading" ? (
+                <LoadingPanel label="Loading spatial evidence…" rows={3} />
+              ) : null}
+              {state.spatial.status === "error" ? (
+                <ErrorPanel
+                  what="Spatial evidence"
+                  error={state.spatial.error}
+                  onRetry={() => dispatch({ type: "property_retry" })}
+                />
+              ) : null}
+              {state.spatial.status === "ready" ? (
+                <Reveal>
+                  <SpatialPanel
+                    spatial={state.spatial.data}
+                    location={
+                      state.property.status === "ready"
+                        ? state.property.data.location.value
+                        : null
+                    }
+                  />
+                </Reveal>
+              ) : null}
+            </div>
+
+            {state.property.status === "ready" ? (
+              <Reveal>
+                <PropertyPanel property={state.property.data} />
+              </Reveal>
             ) : null}
 
             {state.property.status === "ready" ? (
@@ -361,10 +365,43 @@ export function Dashboard({ client = apiClient }: { client?: ApiClient }) {
                 )}
               </ScenarioWorkspace>
             ) : null}
-
           </div>
         </div>
       </main>
     </div>
+  );
+}
+
+function Welcome() {
+  const points = [
+    { icon: Box, text: "Matterport spatial evidence and an explorable 3D tour" },
+    { icon: Calculator, text: "A deterministic, server-calculated income comparison" },
+    { icon: ShieldCheck, text: "An evidence-bound agent summary with a checking receipt" },
+  ];
+  return (
+    <section
+      aria-labelledby="welcome-heading"
+      className="overflow-hidden rounded-2xl bg-espresso-900 p-6 text-ivory sm:p-10"
+    >
+      <KestrelMark tone="light" className="size-14" />
+      <h2 id="welcome-heading" className="mt-5 font-display text-3xl leading-tight sm:text-4xl">
+        See the potential in every property.
+      </h2>
+      <p className="mt-3 max-w-2xl text-base leading-relaxed text-ivory/75">
+        Kestrel screens commercial buildings for reuse, from the facts on record to the room-level
+        spatial evidence behind them.
+      </p>
+      <ul className="mt-6 grid gap-3 sm:grid-cols-3">
+        {points.map(({ icon: Icon, text }) => (
+          <li key={text} className="flex items-start gap-3 rounded-lg border border-espresso-600 bg-espresso-800 p-3 text-sm">
+            <Icon className="mt-0.5 size-5 shrink-0 text-copper-300" aria-hidden />
+            <span className="text-ivory/85">{text}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-6 text-sm font-medium text-copper-200">
+        Select a property to see its facts, spatial evidence and analysis.
+      </p>
+    </section>
   );
 }
