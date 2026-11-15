@@ -158,7 +158,7 @@ export function Explorer({
             aria-label="3D tour"
             data-testid="tour-panel"
             data-tour-frame
-            className="relative z-10 aspect-[4/3] max-h-[48rem] min-h-80 w-full overflow-hidden rounded-2xl border border-slate-300 bg-espresso-950 shadow-md sm:aspect-[16/9] lg:max-h-[min(78vh,54rem)]"
+            className="relative z-10 h-[min(72vh,36rem)] min-h-96 w-full overflow-hidden rounded-2xl border border-slate-300 bg-espresso-950 shadow-md sm:h-[min(78vh,48rem)] lg:h-[clamp(36rem,82vh,62rem)]"
           >
             <div className="absolute inset-0">
               <TourPanel tour={tour} title={tourTitle} onBack={() => setMode("2d")} />
@@ -168,7 +168,7 @@ export function Explorer({
       </div>
       {mode === "3d" && tour.status === "available" ? (
         <p className="text-xs text-slate-600" data-testid="tour-note">
-          Move through the tour with Matterport&apos;s own controls. The initial view follows the verified shared location when configured, otherwise Matterport&apos;s default.
+          Move through the tour with Matterport&apos;s own controls. Use Dollhouse (top-right of the viewer) for a view of the whole space.
         </p>
       ) : null}
     </div>
