@@ -4,11 +4,13 @@ import {FakeToolCallingModel} from "langchain";
 import {buildRequest} from "@/features/scenarios/model";
 import {verificationCall} from "../fixtures/verification";
 import {recordingModel} from "../fixtures/recording";
-import {property,spatial} from "../fixtures/contracts";
+import {property as fixtureProperty,spatial} from "../fixtures/contracts";
 import {createComparisonService} from "@/lib/contracts/service";
 import {createHandlers} from "@/lib/api/handlers";
 import {runPropertyAnalysis} from "@/lib/agent/analysis";
 import {readAgentConfig} from "@/lib/agent/config";
+// Fictional recorded-area input; no shared fixture or sponsor record is altered.
+const property={...fixtureProperty,rentableAreaSqft:{...fixtureProperty.rentableAreaSqft,origin:"source_data" as const}};
 const providers={property:{async listProperties(){return[property]},async getProperty(){return property}},spatial:{async getSpatialContext(){return spatial}}};
 const service=createComparisonService(providers);
 const config=readAgentConfig({ANALYSIS_ENABLED:"true"});
@@ -17,7 +19,7 @@ const http=(input:unknown)=>new Request("http://localhost/api/v1/scenarios/compa
 describe("actual scenario-editor financial payload and analysis path",()=>{
  it("transmits the disclosed cost basis, five capex categories, lease note and constraints separately",async()=>{
   const input=request();
-  expect(input.scenarios[1].capex).toEqual({renovation:{value:"100000"},conversion:{value:"0"},softCosts:{value:"15000"},contingency:{value:"15000"},other:{value:"0"}});
+  expect(input.scenarios[1].capex).toEqual({renovation:{value:"100000",acceptedEstimate:true},conversion:{value:"0",acceptedEstimate:true},softCosts:{value:"15000",acceptedEstimate:true},contingency:{value:"15000",acceptedEstimate:true},other:{value:"0",acceptedEstimate:true}});
   expect(input.scenarios[1].totalProjectCost.value).toBe("6130000");expect(input.scenarios[1].totalProjectCost.note).toContain("Hypothetical");
   expect(input.scenarios.every(s=>s.leaseBasis==="gross"&&!!s.rentNormalizationNote)).toBe(true);
   expect(input.constraints.maxInitialInvestment.value).toBe("2000000");
@@ -25,6 +27,13 @@ describe("actual scenario-editor financial payload and analysis path",()=>{
   const body=await response.json();expect(body.ok).toBe(true);expect(body.data.comparison.preferredScenarioId).toBe("alternative-b");
   expect(body.data.comparison.results.map((r:{noi:{value:string}})=>r.noi.value)).toEqual(["77810","92560","105380"]);
   expect(body.data.comparison.results[1].initialInvestment.value).toBe("130000");expect(body.data.comparison.results[1].yieldOnCost.value).not.toBeNull();
+ });
+ it("returns a safe input error for malformed period dates",async()=>{
+  const input=request();input.scenarios[0].period.start="not-a-date";
+  const response=await createHandlers(()=>providers).compare(http(input));
+  expect(response.status).toBe(400);
+  const body=await response.json();expect(body.ok).toBe(false);expect(body.error.code).toBe("INVALID_INPUT");
+  expect(JSON.stringify(body)).not.toContain("RangeError");
  });
  it("never uses a total-project-cost value as missing upfront capex; analysis still requests input",async()=>{
   const input=request();for(const s of input.scenarios.filter(s=>s.role==="alternative"))for(const d of Object.values(s.capex))d.value=null;

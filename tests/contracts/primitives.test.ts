@@ -27,6 +27,9 @@ describe("bounded decimal and provenance contracts", () => {
   it.each(["-1", "1.00000001"])("rejects out-of-range ratio %s", (value) =>
     expect(Ratio.safeParse(value).success).toBe(false),
   );
+  it.each(["not-a-date", "2026-13-01", "2026-02-30", ""])("rejects malformed period start %s without throwing", start => {
+    expect(Period.safeParse({ start, end: "2027-01-01", basis: "stabilized_annual" }).success).toBe(false);
+  });
   it("requires an exact calendar year", () => {
     expect(
       Period.safeParse({
