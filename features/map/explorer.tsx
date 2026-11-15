@@ -53,7 +53,7 @@ function onFullscreenChange(cb: () => void) {
 }
 
 const ACTION =
-  "inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-md border border-ink-300 bg-white px-3 text-sm font-medium text-ink-900 transition-colors hover:border-ink-500 hover:bg-ink-50";
+  "inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-md border border-white/25 px-3 text-sm font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline-buff-200";
 
 /**
  * 2D map | 3D tour. The map stays mounted (invisible, inert and out of flow)
@@ -115,8 +115,8 @@ export function Explorer({
   const option = (value: Mode, label: string, icon: React.ReactNode, disabled = false) => (
     <label
       className={
-        "relative inline-flex min-h-9 select-none items-center gap-1.5 rounded-[5px] px-3 text-sm font-medium transition-colors has-[:checked]:bg-ink-900 has-[:checked]:text-white has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-rufous-500 " +
-        (disabled ? "cursor-not-allowed text-ink-400" : "cursor-pointer text-ink-700 hover:text-ink-950")
+        "relative inline-flex min-h-9 select-none items-center gap-1.5 rounded-[5px] px-3 text-sm font-medium transition-colors has-[:checked]:bg-buff-100 has-[:checked]:text-ink-950 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-buff-200 " +
+        (disabled ? "cursor-not-allowed text-ink-500" : "cursor-pointer text-ink-200 hover:text-white")
       }
     >
       <input
@@ -135,12 +135,12 @@ export function Explorer({
   );
 
   return (
-    <div className="min-w-0 space-y-3">
+    <div className={compact ? "min-w-0 space-y-3" : "survey-grid min-w-0 space-y-3 rounded-2xl bg-ink-900 p-3 sm:p-4"}>
       {compact ? null : (
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
           <fieldset className="m-0 border-0 p-0">
             <legend className="sr-only">Property view</legend>
-            <div className="inline-flex gap-0.5 rounded-lg border border-ink-200 bg-white p-0.5">
+            <div className="inline-flex gap-0.5 rounded-lg border border-white/15 bg-ink-950/60 p-0.5">
               {option("2d", "2D Map", <MapIcon className="size-4" />)}
               {option("3d", "3D Tour", <Box className="size-4" />, disable3d)}
             </div>
@@ -160,7 +160,7 @@ export function Explorer({
               </a>
             </div>
           ) : hint ? (
-            <p id={hintId} className="max-w-xl text-[13px] text-ink-600" data-testid="tour-hint">
+            <p id={hintId} className="max-w-xl text-[13px] text-ink-200" data-testid="tour-hint">
               {hint}
             </p>
           ) : null}
@@ -175,6 +175,7 @@ export function Explorer({
         >
           <PropertyMap
             {...mapProps}
+            onDark={!compact}
             frameClassName={compact ? "h-72 sm:h-96 lg:h-[30rem]" : "h-80 sm:h-[30rem] lg:h-[clamp(30rem,68vh,48rem)]"}
           />
           {compact && canShow3d ? (
@@ -204,7 +205,7 @@ export function Explorer({
         ) : null}
       </div>
       {mode === "3d" && tour.status === "available" ? (
-        <p className="text-xs text-ink-500" data-testid="tour-note">
+        <p className="text-xs text-ink-300" data-testid="tour-note">
           Move through the tour with Matterport&apos;s own controls. Use Dollhouse (top-right of the viewer) for a view of the whole space.
         </p>
       ) : null}

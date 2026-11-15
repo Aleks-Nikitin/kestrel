@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ArrowRight, Calculator } from "lucide-react";
-import type { ComparisonResponseDTO } from "@/lib/contracts";
+import type { ComparisonRequestDTO, ComparisonResponseDTO } from "@/lib/contracts";
 import type { Load } from "@/features/dashboard/state";
 import { ErrorPanel, LoadingPanel, buttonInk, buttonPrimary } from "@/components/kestrel/state-panels";
 import { ComparisonView } from "./comparison-view";
@@ -15,6 +15,7 @@ export function ComparisonStage({
   hidden,
   address,
   compare,
+  submitted,
   stale,
   problems,
   openInputs,
@@ -24,6 +25,8 @@ export function ComparisonStage({
   hidden: boolean;
   address: string;
   compare: Load<ComparisonResponseDTO>;
+  /** The request most recently submitted; its limits are shown only beside the result that answers it. */
+  submitted: ComparisonRequestDTO | null;
   stale: boolean;
   problems: number;
   /** Inputs the engine still needs for a full recommendation (never a blocker). */
@@ -79,7 +82,16 @@ export function ComparisonStage({
         ) : null}
         {loading ? <LoadingPanel label="Calculating comparison…" rows={4} onCancel={onCancel} /> : null}
         {compare.status === "error" ? <ErrorPanel what="Comparison" error={compare.error} onRetry={onCalculate} /> : null}
-        {compare.status === "ready" ? <ComparisonView response={compare.data} stale={stale} previous={prevResponse} /> : null}
+        {compare.status === "ready" ? <ComparisonView
+            response={compare.data}
+            stale={stale}
+            previous={prevResponse}
+            constraints={
+              submitted && submitted.propertyId === compare.data.propertyId && submitted.inputRevision === compare.data.inputRevision
+                ? submitted.constraints
+                : null
+            }
+          /> : null}
       </div>
     </section>
   );

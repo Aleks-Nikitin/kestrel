@@ -42,6 +42,7 @@ export function PropertyMap({
   footprint,
   styleUrl = process.env.NEXT_PUBLIC_MAP_STYLE_URL,
   frameClassName = "h-80 sm:h-[26rem] lg:h-[30rem]",
+  onDark = false,
 }: {
   properties: PropertySummaryDTO[];
   selectedId: string | null;
@@ -51,6 +52,8 @@ export function PropertyMap({
   styleUrl?: string;
   /** Height classes for the map frame; the stage decides how much room it gets. */
   frameClassName?: string;
+  /** The notes under the map sit on an ink surface. */
+  onDark?: boolean;
 }) {
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -202,7 +205,7 @@ export function PropertyMap({
           role="region"
           aria-label="Map of properties. The property list offers the same selection."
           data-testid="property-map"
-          className={"relative overflow-hidden rounded-xl border border-ink-200 bg-ink-100 " + frameClassName}
+          className={"relative overflow-hidden rounded-xl border bg-ink-100 " + (onDark ? "border-white/10 " : "border-ink-200 ") + frameClassName}
         >
           {/* MapLibre's unlayered CSS sets .maplibregl-map to position:relative,
               which beats Tailwind's layered `absolute inset-0` and collapses the
@@ -222,7 +225,7 @@ export function PropertyMap({
           ) : null}
         </div>
       )}
-      <div className="mt-2 space-y-0.5 text-xs text-ink-500">
+      <div className={"mt-2 space-y-0.5 text-xs " + (onDark ? "text-ink-300" : "text-ink-500")}>
         {engine !== "unsupported" && !resolved ? (
           <p data-testid="no-basemap">
             No approved basemap is configured, so locations are shown on a plain
@@ -230,7 +233,7 @@ export function PropertyMap({
           </p>
         ) : null}
         {mapError ? (
-          <p role="status" data-testid="map-error" className="text-ochre-700">
+          <p role="status" data-testid="map-error" className={onDark ? "text-ochre-300" : "text-ochre-700"}>
             Map notice: {mapError}
           </p>
         ) : null}

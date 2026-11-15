@@ -48,6 +48,9 @@ export function Dashboard({ client = apiClient }: { client?: ApiClient }) {
   // Scenario periods start in the year the property was chosen; the clock is
   // read in that event handler only, so rendering stays deterministic.
   const [periodYear, setPeriodYear] = useState<number | null>(null);
+  // The request behind the latest submission, kept so the comparison can state
+  // the limits it was tested against. Display only; the server decides.
+  const [submitted, setSubmitted] = useState<ComparisonRequestDTO | null>(null);
 
   // Catalog
   useEffect(() => {
@@ -230,6 +233,7 @@ export function Dashboard({ client = apiClient }: { client?: ApiClient }) {
       return;
     }
     editor.clearAttempt();
+    setSubmitted(editor.request);
     void runCompare(editor.request);
     go("comparison");
   }
@@ -419,6 +423,7 @@ export function Dashboard({ client = apiClient }: { client?: ApiClient }) {
               hidden={stage !== "comparison"}
               address={address}
               compare={state.compare}
+              submitted={submitted}
               stale={compareStale}
               problems={editor.totalProblems}
               openInputs={editor.ready.total}
