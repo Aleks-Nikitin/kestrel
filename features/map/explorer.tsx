@@ -65,6 +65,13 @@ export function Explorer({
   ...mapProps
 }: ComponentProps<typeof PropertyMap> & { tour: TourState; tourTitle: string }) {
   const [mode, setMode] = useState<Mode>("2d");
+  // A different property starts on the 2D map. Reset during render, not by re-keying, so the map itself
+  // (camera, markers, focus) is never remounted when a marker click changes the selection.
+  const [shownFor, setShownFor] = useState(mapProps.selectedId);
+  if (shownFor !== mapProps.selectedId) {
+    setShownFor(mapProps.selectedId);
+    setMode("2d");
+  }
   const name = useId();
   const hintId = useId();
   const frame = useRef<HTMLElement>(null);

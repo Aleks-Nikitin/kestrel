@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useReducer, useState, type KeyboardEvent, type ReactNode } from "react";
-import { Calculator, Plus } from "lucide-react";
+import { Calculator, FlaskConical, Plus } from "lucide-react";
 import type { ComparisonResponseDTO, ComparisonRequestDTO, PropertyDTO } from "@/lib/contracts";
 import type { Load } from "@/features/dashboard/state";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,9 @@ import { ComparisonView } from "./comparison-view";
 import { ScenarioFormView } from "./scenario-form";
 import { canAddAlternative, canRemoveAlternative, editorReducer, type EditorAction } from "./editor-state";
 import { readiness } from "./readiness";
-import { initialModel, problemCount, propertyProposals, validateModel } from "./model";
+import { planIllustrativeLoad } from "./illustrative-load";
+import { ILLUSTRATIVE_EXAMPLE_DISCLOSURE, ILLUSTRATIVE_EXAMPLE_LABEL } from "@/lib/scenarios/illustrative-example";
+import { initialModel, problemCount, propertyProposals, validateModel, type EditorModel } from "./model";
 
 /**
  * Baseline + alternatives editor with a deterministic comparison. The property
@@ -45,6 +47,8 @@ export function ScenarioWorkspace({
   );
   const [activeId, setActiveId] = useState("baseline");
   const [attempted, setAttempted] = useState(false);
+  const [pendingLoad, setPendingLoad] = useState<EditorModel | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const validation = useMemo(
     () => validateModel(model, property.id, inputRevision),
     [model, property.id, inputRevision],
@@ -74,6 +78,24 @@ export function ScenarioWorkspace({
     const next = (i + (e.key === "ArrowRight" ? 1 : -1) + model.scenarios.length) % model.scenarios.length;
     setActiveId(model.scenarios[next].id);
     document.getElementById(`tab-${model.scenarios[next].id}`)?.focus();
+  }
+
+  function loadExample(confirmed: EditorModel | null = null) {
+    const plan = confirmed ? { kind: "load" as const, model: confirmed } : planIllustrativeLoad(property, model);
+    setLoadError(null);
+    if (plan.kind === "error") {
+      setPendingLoad(null);
+      setLoadError(plan.message);
+      return;
+    }
+    if (plan.kind === "confirm") {
+      setPendingLoad(plan.model);
+      return;
+    }
+    setPendingLoad(null);
+    edit({ type: "replace_model", model: plan.model }); // one edit: one input revision
+    setActiveId("baseline");
+    setAttempted(false);
   }
 
   function submit() {
@@ -113,6 +135,32 @@ export function ScenarioWorkspace({
       </p>
 
       <div className="mt-4 space-y-4">
+        <div className="rounded-xl border border-copper-200 bg-copper-50 p-4" data-testid="illustrative-example">
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="button" variant="secondary" onClick={() => loadExample()}>
+              <FlaskConical className="size-4" aria-hidden /> {ILLUSTRATIVE_EXAMPLE_LABEL}
+            </Button>
+            <p className="min-w-0 flex-1 text-xs text-slate-700">
+              Fills the baseline, both alternatives and the constraints so you can try the comparison. It does not
+              calculate or run the analyst; you choose when.
+            </p>
+          </div>
+          <p className="mt-2 text-xs text-slate-700" data-testid="illustrative-disclosure">
+            {ILLUSTRATIVE_EXAMPLE_DISCLOSURE}
+          </p>
+          {loadError ? (
+            <p role="alert" data-testid="illustrative-error" className="mt-2 rounded-md bg-amber-100 p-2 text-xs font-medium text-amber-900">
+              {loadError} Your current drafts are unchanged.
+            </p>
+          ) : null}
+          {pendingLoad ? (
+            <div role="alert" data-testid="illustrative-confirm" className="mt-2 flex flex-wrap items-center gap-2 rounded-md bg-white p-2 text-xs text-slate-800">
+              <span className="flex-1">You have edited these drafts. Replace all scenarios and constraints with the illustrative example?</span>
+              <Button type="button" size="sm" onClick={() => loadExample(pendingLoad)}>Replace drafts</Button>
+              <Button type="button" size="sm" variant="secondary" onClick={() => setPendingLoad(null)}>Keep my drafts</Button>
+            </div>
+          ) : null}
+        </div>
         <ConstraintsFormView
           constraints={model.constraints}
           validation={validation}
