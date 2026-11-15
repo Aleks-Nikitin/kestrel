@@ -110,7 +110,11 @@ export function Explorer({
   );
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-copper-700">Spatial intelligence</p>
+        <h2 className="mt-0.5 font-display text-2xl text-slate-900 sm:text-3xl">Map and 3D tour</h2>
+      </div>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <fieldset className="m-0 border-0 p-0">
           <legend className="sr-only">Property view</legend>
@@ -140,7 +144,7 @@ export function Explorer({
         ) : null}
       </div>
 
-      <div className={"relative " + (mode === "3d" ? "overflow-hidden rounded-xl" : "")}>
+      <div className={"relative " + (mode === "3d" ? "overflow-hidden rounded-2xl" : "")}>
         <div
           className={mode === "3d" ? "pointer-events-none invisible absolute inset-x-0 top-0" : undefined}
           aria-hidden={mode === "3d" || undefined}
@@ -154,7 +158,7 @@ export function Explorer({
             aria-label="3D tour"
             data-testid="tour-panel"
             data-tour-frame
-            className="relative z-10 aspect-[4/3] max-h-[44rem] min-h-80 w-full overflow-hidden rounded-xl border border-slate-300 bg-slate-900 shadow-sm sm:aspect-[16/10] lg:max-h-[min(72vh,46rem)]"
+            className="relative z-10 aspect-[4/3] max-h-[48rem] min-h-80 w-full overflow-hidden rounded-2xl border border-slate-300 bg-espresso-950 shadow-md sm:aspect-[16/9] lg:max-h-[min(78vh,54rem)]"
           >
             <div className="absolute inset-0">
               <TourPanel tour={tour} title={tourTitle} onBack={() => setMode("2d")} />

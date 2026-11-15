@@ -185,10 +185,10 @@ export function AnalysisResult({
       {!stale ? <InvestigationPanel investigation={buildInvestigation(response)} /> : null}
 
       {!stale ? (
-        <div data-testid="investment-summary" className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
+        <div data-testid="investment-summary" className="space-y-3 rounded-2xl border border-slate-200 border-l-4 border-l-copper-600 bg-white p-4 shadow-sm sm:p-6">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Investment summary</p>
-            <p className="mt-1 text-lg font-semibold leading-snug text-slate-900">{summary.headline}</p>
+            <p className="mt-1 font-display text-2xl leading-snug text-slate-900">{summary.headline}</p>
           </div>
           <ProvenanceLegend />
           <ClaimList title="Established facts" claims={facts} evidence={evidenceById} />

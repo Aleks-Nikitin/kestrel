@@ -29,19 +29,19 @@ export function PropertyList({
               aria-pressed={selected}
               onClick={() => onSelect(p.id)}
               className={cn(
-                "w-full rounded-lg border bg-white p-3 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600",
+                "w-full cursor-pointer rounded-xl border bg-white p-3.5 text-left shadow-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-copper-600",
                 selected
-                  ? "border-sky-600 ring-2 ring-sky-600/30"
-                  : "border-slate-200 hover:border-slate-400",
+                  ? "border-copper-600 bg-copper-50 ring-2 ring-copper-600/25"
+                  : "border-slate-200 hover:border-copper-400",
               )}
             >
               <span className="flex items-start gap-3">
                 <Building2
-                  className="mt-0.5 size-5 shrink-0 text-slate-500"
+                  className={cn("mt-0.5 size-5 shrink-0", selected ? "text-copper-700" : "text-slate-500")}
                   aria-hidden
                 />
                 <span className="min-w-0">
-                  <span className="block text-sm font-semibold text-slate-900">
+                  <span className="block text-sm font-semibold leading-snug text-slate-900">
                     {p.address.value ?? "Address unknown"}
                   </span>
                   <span className="mt-0.5 block text-xs text-slate-600">

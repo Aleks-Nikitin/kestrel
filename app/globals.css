@@ -2,24 +2,24 @@
 
 :root {
   color-scheme: light;
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8f4ea;
+  --foreground: #221811;
   --card: #ffffff;
-  --card-foreground: #0f172a;
+  --card-foreground: #221811;
   --popover: #ffffff;
-  --popover-foreground: #0f172a;
-  --primary: #0f172a;
-  --primary-foreground: #ffffff;
-  --secondary: #f1f5f9;
-  --secondary-foreground: #0f172a;
-  --muted: #f1f5f9;
-  --muted-foreground: #475569;
-  --accent: #f1f5f9;
-  --accent-foreground: #0f172a;
-  --destructive: #b91c1c;
-  --border: #cbd5e1;
-  --input: #cbd5e1;
-  --ring: #475569;
+  --popover-foreground: #221811;
+  --primary: #2c1f16;
+  --primary-foreground: #fbf8f1;
+  --secondary: #f0e9db;
+  --secondary-foreground: #221811;
+  --muted: #f0e9db;
+  --muted-foreground: #64574a;
+  --accent: #f0e9db;
+  --accent-foreground: #221811;
+  --destructive: #a33a2b;
+  --border: #d2c5ad;
+  --input: #d2c5ad;
+  --ring: #94532b;
   --radius: 0.625rem;
 }
 
@@ -48,6 +48,70 @@
   --radius-xl: calc(var(--radius) + 4px);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+}
+
+/*
+ * Kestrel design tokens. Components were written against Tailwind's slate and
+ * sky scales, so those scales are remapped here to warm stone neutrals and a
+ * muted steel blue (kept for links, focus and "blue" semantics). Brand colour
+ * lives in the espresso, copper and ivory scales below.
+ */
+@theme {
+  --color-slate-50: #f8f4ea;
+  --color-slate-100: #f0e9db;
+  --color-slate-200: #e4dac7;
+  --color-slate-300: #d2c5ad;
+  --color-slate-400: #a99a83;
+  --color-slate-500: #7b6d5c;
+  --color-slate-600: #64574a;
+  --color-slate-700: #4b3f34;
+  --color-slate-800: #33291f;
+  --color-slate-900: #221811;
+  --color-slate-950: #150e09;
+
+  --color-sky-50: #eef3f7;
+  --color-sky-100: #dce7ef;
+  --color-sky-200: #bfd2e0;
+  --color-sky-300: #94b3cb;
+  --color-sky-400: #6890b0;
+  --color-sky-500: #4a7597;
+  --color-sky-600: #3a5f7e;
+  --color-sky-700: #2f4e69;
+  --color-sky-800: #263f55;
+  --color-sky-900: #1e3144;
+  --color-sky-950: #14202c;
+
+  --color-espresso-600: #54402f;
+  --color-espresso-700: #3e2c20;
+  --color-espresso-800: #2c1f16;
+  --color-espresso-900: #1f1610;
+  --color-espresso-950: #17100b;
+
+  --color-copper-50: #fbf1e8;
+  --color-copper-100: #f5e0cc;
+  --color-copper-200: #ebc4a0;
+  --color-copper-300: #ddaa7c;
+  --color-copper-400: #cc8a55;
+  --color-copper-500: #b06a3b;
+  --color-copper-600: #94532b;
+  --color-copper-700: #7a4323;
+  --color-copper-800: #5f341c;
+  --color-copper-900: #452615;
+  --color-fuchsia-50: #faf0ee;
+  --color-fuchsia-100: #f4e0dc;
+  --color-fuchsia-200: #e9c6c0;
+  --color-fuchsia-300: #d9a59d;
+  --color-fuchsia-400: #c2847b;
+  --color-fuchsia-500: #a8665d;
+  --color-fuchsia-600: #8f4f47;
+  --color-fuchsia-700: #763f39;
+  --color-fuchsia-800: #5e3430;
+  --color-fuchsia-900: #4a2b28;
+  --color-fuchsia-950: #2d1917;
+
+  --color-ivory: #fbf8f1;
+
+  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
 }
 
 body {

@@ -41,33 +41,33 @@ export function ComparisonChart({ data }: { data: ChartDatum[] }) {
       >
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={drawn} margin={{ top: 24, right: 12, left: 4, bottom: 8 }}>
-            <CartesianGrid vertical={false} stroke="#e2e8f0" />
-            <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#334155" }} interval={0} />
+            <CartesianGrid vertical={false} stroke="#e4dac7" />
+            <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#4b3f34" }} interval={0} />
             <YAxis
               width={64}
-              tick={{ fontSize: 12, fill: "#334155" }}
+              tick={{ fontSize: 12, fill: "#4b3f34" }}
               tickFormatter={(v: number) => formatUsd(String(v))}
             />
-            <ReferenceLine y={0} stroke="#475569" />
+            <ReferenceLine y={0} stroke="#64574a" />
             <Bar dataKey="value" isAnimationActive={false} radius={[3, 3, 0, 0]}>
               {drawn.map((d) => (
                 <Cell
                   key={d.id}
-                  fill={d.preferred ? "#0369a1" : d.baseline ? "#94a3b8" : "#475569"}
+                  fill={d.preferred ? "#94532b" : d.baseline ? "#b9ab94" : "#64574a"}
                 />
               ))}
               <LabelList
                 dataKey="noi"
                 position="top"
                 formatter={(v: unknown) => formatUsd(String(v))}
-                style={{ fontSize: 12, fill: "#0f172a" }}
+                style={{ fontSize: 12, fill: "#221811" }}
               />
             </Bar>
           </BarChart>
         </ResponsiveContainer>
       </div>
       <figcaption className="mt-1 text-xs text-slate-600">
-        Annual NOI (USD per year). Blue = preferred scenario, light gray = baseline.
+        Annual NOI (USD per year). Copper = preferred scenario, light stone = baseline.
         {missing.length ? ` NOI unavailable for: ${missing.join(", ")}.` : ""}
       </figcaption>
     </figure>

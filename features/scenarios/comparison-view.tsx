@@ -12,11 +12,11 @@ type Metric = FinancialResultDTO["noi"];
 
 const CONCLUSION: Record<
   ComparisonResponseDTO["comparison"]["conclusion"],
-  { title: string; tone: string }
+  { title: string; tone: string; dark: boolean }
 > = {
-  conditional_preference: { title: "Conditional preference", tone: "border-sky-300 bg-sky-50 text-sky-950" },
-  retain_baseline: { title: "Retain the baseline", tone: "border-slate-300 bg-slate-50 text-slate-900" },
-  insufficient_evidence: { title: "Insufficient evidence — no preferred scenario", tone: "border-amber-300 bg-amber-50 text-amber-950" },
+  conditional_preference: { title: "Conditional preference", tone: "border-espresso-700 bg-espresso-900 text-ivory", dark: true },
+  retain_baseline: { title: "Retain the baseline", tone: "border-slate-300 bg-white text-slate-900", dark: false },
+  insufficient_evidence: { title: "Insufficient evidence — no preferred scenario", tone: "border-amber-300 bg-amber-50 text-amber-950", dark: false },
 };
 const ELIGIBILITY_TONE = { eligible: "green", conditional: "amber", excluded: "red", insufficient_data: "slate" } as const;
 
@@ -38,13 +38,15 @@ const WATERFALL: [keyof FinancialResultDTO & string, string][] = [
   ["operatingExpenses", "Operating expenses"],
 ];
 
-function MetricValue({ metric }: { metric: Metric }) {
+function MetricValue({ metric, onDark = false }: { metric: Metric; onDark?: boolean }) {
   if (metric.value === null)
     return (
       <span>
-        <span className="italic text-slate-600">Unavailable</span>
+        <span className={cn("italic", onDark ? "text-ivory/70" : "text-slate-600")}>Unavailable</span>
         {metric.unavailableReason ? (
-          <span className="block text-xs text-slate-600">{metric.unavailableReason}</span>
+          <span className={cn("block text-xs font-normal", onDark ? "text-ivory/70" : "text-slate-600")}>
+            {metric.unavailableReason}
+          </span>
         ) : null}
       </span>
     );
@@ -52,7 +54,7 @@ function MetricValue({ metric }: { metric: Metric }) {
   return (
     <span
       title={`${metric.value} (${metric.unit}) · ${metric.formulaId}`}
-      className={cn("tabular-nums", negative && "text-red-800")}
+      className={cn("tabular-nums", negative && (onDark ? "text-red-300" : "text-red-800"))}
     >
       {formatByUnit(metric.value, metric.unit)}
       {negative ? <span className="sr-only"> (negative)</span> : null}
@@ -63,9 +65,12 @@ function MetricValue({ metric }: { metric: Metric }) {
 export function ComparisonView({
   response,
   stale,
+  previous = null,
 }: {
   response: ComparisonResponseDTO;
   stale: boolean;
+  /** The previous successful comparison, if any, used only to state what changed. */
+  previous?: ComparisonResponseDTO | null;
 }) {
   const { comparison, scenarios } = response;
   const name = (id: string) => scenarios.find((s) => s.id === id)?.name ?? id;
@@ -78,6 +83,15 @@ export function ComparisonView({
   const concl = CONCLUSION[comparison.conclusion];
   const preferredId = comparison.preferredScenarioId;
   const preferredResult = comparison.results.find((r) => r.scenarioId === preferredId);
+  const dark = concl.dark;
+  const prevPreferredId = previous?.comparison.preferredScenarioId ?? null;
+  const prevName = prevPreferredId
+    ? (previous?.scenarios.find((x) => x.id === prevPreferredId)?.name ?? prevPreferredId)
+    : null;
+  const changed =
+    previous !== null &&
+    (previous.comparison.preferredScenarioId !== preferredId ||
+      previous.comparison.conclusion !== comparison.conclusion);
 
   return (
     <div className={cn("space-y-5", stale && "opacity-70")} data-testid="comparison-result" data-stale={stale}>
@@ -88,9 +102,9 @@ export function ComparisonView({
         </div>
       ) : null}
 
-      <div className={cn("overflow-hidden rounded-xl border", concl.tone)} data-testid="recommendation">
-        <div className="p-4 sm:p-5">
-          <p className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wide opacity-80">
+      <div className={cn("overflow-hidden rounded-2xl border shadow-sm", concl.tone)} data-testid="recommendation">
+        <div className="p-5 sm:p-7">
+          <p className={cn("flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em]", dark ? "text-copper-300" : "opacity-80")}>
             <Award className="size-4" aria-hidden />
             Recommendation · {concl.title}
             {synthetic ? <ProvenanceChip kind="synthetic" /> : null}
@@ -98,13 +112,13 @@ export function ComparisonView({
           {preferredId ? (
             <div className="mt-2 flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
               <div>
-                <p className="text-2xl font-semibold leading-tight">{name(preferredId)}</p>
-                <p className="text-sm opacity-80">
+                <p className="font-display text-3xl leading-tight sm:text-4xl">{name(preferredId)}</p>
+                <p className={cn("mt-1 text-sm", dark ? "text-ivory/75" : "opacity-80")}>
                   {scenarios.find((s) => s.id === preferredId)?.proposedUse}
                 </p>
               </div>
               {preferredResult ? (
-                <dl className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+                <dl className="grid w-full grid-cols-1 gap-3 text-sm sm:w-auto sm:grid-cols-3">
                   {(
                     [
                       ["incrementalNoi", "Incremental NOI vs baseline"],
@@ -112,10 +126,16 @@ export function ComparisonView({
                       ["paybackYears", "Simple payback"],
                     ] as [keyof FinancialResultDTO & string, string][]
                   ).map(([key, label]) => (
-                    <div key={key}>
-                      <dt className="text-xs opacity-80">{label}</dt>
-                      <dd className="text-lg font-semibold">
-                        <MetricValue metric={preferredResult[key as "noi"]} />
+                    <div
+                      key={key}
+                      className={cn(
+                        "rounded-lg border px-4 py-3",
+                        dark ? "border-espresso-600 bg-espresso-800" : "border-black/10 bg-white/70",
+                      )}
+                    >
+                      <dt className={cn("text-xs", dark ? "text-ivory/70" : "opacity-80")}>{label}</dt>
+                      <dd className="mt-0.5 text-2xl font-semibold">
+                        <MetricValue metric={preferredResult[key as "noi"]} onDark={dark} />
                       </dd>
                     </div>
                   ))}
@@ -123,11 +143,11 @@ export function ComparisonView({
               ) : null}
             </div>
           ) : (
-            <p className="mt-2 text-xl font-semibold">No scenario is preferred</p>
+            <p className="mt-2 font-display text-3xl">No scenario is preferred</p>
           )}
           {comparison.reasons.length ? (
             <div className="mt-3">
-              <p className="text-xs font-medium uppercase tracking-wide opacity-80">
+              <p className={cn("text-xs font-medium uppercase tracking-wide", dark ? "text-ivory/70" : "opacity-80")}>
                 Why (from the deterministic comparison)
               </p>
               <ul className="mt-1 space-y-1 text-sm">
@@ -142,7 +162,7 @@ export function ComparisonView({
               {comparison.rankedScenarioIds.map((id, i) => {
                 const idn = scenarioIdentity(scenarios.find((x) => x.id === id), i);
                 return (
-                  <li key={id} className="inline-flex items-center gap-1.5 rounded-full bg-white/80 py-0.5 pl-0.5 pr-3 ring-1 ring-black/10">
+                  <li key={id} className={cn("inline-flex items-center gap-1.5 rounded-full py-0.5 pl-0.5 pr-3 ring-1", dark ? "bg-espresso-800 ring-espresso-600" : "bg-white/80 ring-black/10")}>
                     <span className={cn("grid size-6 place-items-center rounded-full text-[11px] font-bold", idn.badge)} aria-hidden>
                       {i + 1}
                     </span>
@@ -159,13 +179,34 @@ export function ComparisonView({
             </p>
           ) : null}
         </div>
-        <p className="flex items-start gap-1.5 border-t border-black/10 bg-white/40 px-4 py-2 text-xs opacity-90 sm:px-5">
+        <p className={cn("flex items-start gap-1.5 border-t px-4 py-2 text-xs sm:px-7", dark ? "border-espresso-700 bg-espresso-950/60 text-ivory/80" : "border-black/10 bg-white/40 opacity-90")}>
           <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden />
           Preliminary income screening. A preference is not an appraisal,
           zoning determination or structural approval, and it does not prove a
           better return.
         </p>
       </div>
+
+      {previous && !stale ? (
+        <p
+          data-testid="comparison-change"
+          className={cn(
+            "rounded-lg border px-4 py-3 text-sm",
+            changed ? "border-copper-300 bg-copper-50 text-copper-900" : "border-slate-200 bg-white text-slate-700",
+          )}
+        >
+          {changed ? (
+            <>
+              <strong>Result changed since the last calculation.</strong> Previously{" "}
+              {prevName ? <>preferred: <strong>{prevName}</strong></> : "no scenario was preferred"}; now{" "}
+              {preferredId ? <>preferred: <strong>{name(preferredId)}</strong></> : "no scenario is preferred"} (input
+              revision {previous.inputRevision} → {response.inputRevision}).
+            </>
+          ) : (
+            <>Recalculated: the preferred scenario is unchanged from the last calculation.</>
+          )}
+        </p>
+      ) : null}
 
       <ComparisonChart
         data={scenarios.map((s) => {
@@ -193,8 +234,8 @@ export function ComparisonView({
               data-scenario={r.scenarioId}
               data-preferred={isPreferred}
               className={cn(
-                "relative min-w-0 overflow-hidden rounded-xl border bg-white p-4 pt-5",
-                isPreferred ? "border-sky-600 ring-2 ring-sky-600/30" : "border-slate-200",
+                "relative min-w-0 overflow-hidden rounded-2xl border bg-white p-4 pt-5 shadow-sm",
+                isPreferred ? "border-copper-600 ring-2 ring-copper-600/25" : "border-slate-200",
               )}
             >
               <span className={cn("absolute inset-x-0 top-0 h-1.5", idn.bar)} aria-hidden />
