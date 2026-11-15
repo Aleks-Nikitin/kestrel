@@ -15,20 +15,19 @@ function Kpi<T>({
   label,
   datum,
   render,
+  evidence,
 }: {
   label: string;
   datum: DatumView<T>;
   render: (value: T) => string;
+  evidence: PropertyDTO["evidence"];
 }) {
+  if (!isHeadlineFact(datum, evidence)) return null;
   return (
     <SpotlightCard as="li" className="rounded-xl border border-slate-200 bg-white p-3.5">
       <p className="text-xs font-medium uppercase tracking-wide text-slate-600">{label}</p>
       <p className="mt-1 text-xl font-semibold tabular-nums text-slate-900">
-        {datum.value === null ? (
-          <span className="text-base font-normal italic text-slate-600">Unknown</span>
-        ) : (
-          render(datum.value as T)
-        )}
+        {render(datum.value as T)}
       </p>
       <div className="mt-2">
         <OriginBadge origin={datum.origin} />
@@ -37,11 +36,18 @@ function Kpi<T>({
   );
 }
 
+function isHeadlineFact(datum: DatumView<unknown>, evidence: PropertyDTO["evidence"]) {
+  return datum.value !== null && datum.origin === "source_data" && datum.evidenceIds.length > 0 &&
+    datum.evidenceIds.every(id => evidence.some(e => e.id === id && e.kind === "record" && e.allowedUse.display));
+}
+
 const CTA =
   "inline-flex min-h-10 items-center gap-2 rounded-md px-3.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-copper-300";
 
 /** Selected-property header: identity, source distinction and headline facts, all from real values. */
 export function PropertyHero({ property }: { property: PropertyDTO }) {
+  const hasFacts = [property.grossAreaSqft, property.rentableAreaSqft, property.yearBuilt, property.floors,
+    property.occupancyRatio, property.marketRentAnnualPerSqft].some(d => isHeadlineFact(d, property.evidence));
   return (
     <section
       aria-labelledby="property-heading"
@@ -75,14 +81,14 @@ export function PropertyHero({ property }: { property: PropertyDTO }) {
           </a>
         </div>
       </div>
-      <ul aria-label="Headline facts" className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 sm:p-5 xl:grid-cols-6">
-        <Kpi label="Gross area" datum={property.grossAreaSqft} render={(v) => formatByUnit(v, "sqft")} />
-        <Kpi label="Rentable area" datum={property.rentableAreaSqft} render={(v) => formatByUnit(v, "sqft")} />
-        <Kpi label="Year built" datum={property.yearBuilt} render={(v) => String(v)} />
-        <Kpi label="Floors" datum={property.floors} render={(v) => String(v)} />
-        <Kpi label="Occupancy" datum={property.occupancyRatio} render={(v) => formatByUnit(v, "ratio")} />
-        <Kpi label="Market rent" datum={property.marketRentAnnualPerSqft} render={(v) => formatByUnit(v, "USD/sqft/year")} />
-      </ul>
+      {hasFacts ? <ul aria-label="Headline facts" className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,9rem),1fr))] gap-3 p-4 sm:p-5">
+        <Kpi label="Gross area" evidence={property.evidence} datum={property.grossAreaSqft} render={(v) => formatByUnit(v, "sqft")} />
+        <Kpi label="Rentable area" evidence={property.evidence} datum={property.rentableAreaSqft} render={(v) => formatByUnit(v, "sqft")} />
+        <Kpi label="Year built" evidence={property.evidence} datum={property.yearBuilt} render={(v) => String(v)} />
+        <Kpi label="Floors" evidence={property.evidence} datum={property.floors} render={(v) => String(v)} />
+        <Kpi label="Occupancy" evidence={property.evidence} datum={property.occupancyRatio} render={(v) => formatByUnit(v, "ratio")} />
+        <Kpi label="Market rent" evidence={property.evidence} datum={property.marketRentAnnualPerSqft} render={(v) => formatByUnit(v, "USD/sqft/year")} />
+      </ul> : null}
     </section>
   );
 }
@@ -165,8 +171,7 @@ export function PropertyPanel({ property }: { property: PropertyDTO }) {
 
       <EvidenceList evidence={property.evidence} title="Property evidence" />
       <p className="mt-3 text-xs text-slate-600">
-        Preliminary screening only — not an appraisal, zoning determination or
-        structural inspection. Retrieved {latest(property)}.
+        Retrieved {latest(property)}.
       </p>
     </section>
   );
