@@ -63,12 +63,15 @@ export function AnalysisPanel({
     <section
       id="section-analysis"
       aria-labelledby="analysis-heading"
-      className="scroll-mt-28 lg:scroll-mt-20 rounded-lg border border-slate-200 bg-white p-4 sm:p-5"
+      className="scroll-mt-28 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 lg:scroll-mt-20"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 id="analysis-heading" className="text-lg font-semibold">
-          Analysis
-        </h2>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-copper-700">Agent investigation</p>
+          <h2 id="analysis-heading" className="mt-0.5 font-display text-2xl text-slate-900 sm:text-3xl">
+            Analysis
+          </h2>
+        </div>
         {analysis.status === "ready" ? (
           <DataModeBadge
             mode={
@@ -95,7 +98,7 @@ export function AnalysisPanel({
               type="button"
               size="sm"
               variant={a.id === "analyze" ? "default" : "outline"}
-              className={a.id === "analyze" ? "bg-slate-900 text-white hover:bg-slate-700" : undefined}
+              className={a.id === "analyze" ? "min-h-10 bg-copper-600 px-4 text-ivory hover:bg-copper-700" : "min-h-10"}
               disabled={loading || !!blocks[a.id]}
               aria-pressed={active}
               title={a.hint}
